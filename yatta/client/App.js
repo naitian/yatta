@@ -1,3 +1,22 @@
+import * as React from "react";
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
+import Root from "./pages/root";
+import Error from "./pages/error";
+
+
+const router = createBrowserRouter([
+    {
+        path: "/",
+        element: <Root />,
+        errorElement: <Error />,
+    },
+])
+
 export function App() {
-    return <h1>Heyo, amigos!</h1>;
+    return (
+        <React.StrictMode>
+            <RouterProvider router={router} />
+        </React.StrictMode>
+    )
 }
