@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "yatta-tool"
+version = "0.1.0"
+description = ""
+authors = ["Naitian Zhou <naitian@naitian.org>"]
+readme = "README.md"
+packages = [
+  { include = "yatta" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.110.2"
+uvicorn = {extras = ["standard"], version = "^0.29.0"}
+
+[tool.poetry.scripts]
+yatta = "yatta.cli:cli"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
