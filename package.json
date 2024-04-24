@@ -13,7 +13,7 @@
   },
   "targets": {
     "default": {
-      "distDir": "yatta/client/dist"
+      "distDir": "yatta/client/dist/"
     }
   }
 }

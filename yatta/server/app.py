@@ -3,7 +3,7 @@ from typing import Union
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from yatta.utils import relative_path
+from yatta.utils import SRC_DIR
 
 app = FastAPI()
 
@@ -15,6 +15,6 @@ def read_item(item_id: int, q: Union[str, None] = None):
 
 app.mount(
     "/",
-    StaticFiles(directory=relative_path("../client/dist/"), html=True),
+    StaticFiles(directory=SRC_DIR / "client" / "dist", html=True),
     name="client",
 )

@@ -9,3 +9,8 @@ def relative_path(path):
     # use inspect.stack()[1] to get the caller's filename
     module_path = inspect.stack()[1].filename
     return Path(module_path).parent / path
+
+
+# directory for source code
+SRC_DIR = relative_path(".")
+BASE_DIR = SRC_DIR / ".."
