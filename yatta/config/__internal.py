@@ -1,0 +1,1 @@
+/Users/naitian/Documents/Projects/yatta2/yatta/config/default.py

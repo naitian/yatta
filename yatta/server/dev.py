@@ -1,5 +1,5 @@
 """Utilities for the development server."""
-from yatta.utils import BASE_DIR
+from yatta.utils import BASE_DIR, SRC_DIR
 
 
 def setup_frontend_dev():
@@ -20,8 +20,12 @@ def setup_frontend_dev():
 
 def run_frontend_dev():
     """Run the frontend development server."""
+    import shutil
     import subprocess
+    import time
 
     print("Running frontend development server...")
+    shutil.rmtree(SRC_DIR / "client" / "dist", ignore_errors=True)
     process = subprocess.Popen(["npm", "run", "dev"], cwd=BASE_DIR)
+    time.sleep(1)
     return process

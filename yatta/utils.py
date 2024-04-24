@@ -14,3 +14,13 @@ def relative_path(path):
 # directory for source code
 SRC_DIR = relative_path(".")
 BASE_DIR = SRC_DIR / ".."
+
+# internal path to the config file
+INTERNAL_CONFIG_PATH = SRC_DIR / "config" / "__internal.py"
+
+def link_config_path(config_path: Path | str) -> None:
+    """Create symlink from the internal config to the given path."""
+    import os
+    if INTERNAL_CONFIG_PATH.exists():
+        INTERNAL_CONFIG_PATH.unlink()
+    os.symlink(Path(config_path).resolve(), INTERNAL_CONFIG_PATH)
