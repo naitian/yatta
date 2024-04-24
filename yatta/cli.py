@@ -1,5 +1,4 @@
 import functools
-import time
 
 import click
 import uvicorn
@@ -35,6 +34,9 @@ def dev(config):
     if not setup_frontend_dev():
         return
     run_frontend_dev()
+    # we create a symlink to an internal config file path so that the server can
+    # load from a known path -- this is necessary because we can't pass the path
+    # in at runtime.
     link_config_path(config)
 
     from yatta.server.settings import settings

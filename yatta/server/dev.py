@@ -26,6 +26,10 @@ def run_frontend_dev():
 
     print("Running frontend development server...")
     shutil.rmtree(SRC_DIR / "client" / "dist", ignore_errors=True)
+    shutil.rmtree(BASE_DIR / ".parcel-cache", ignore_errors=True)
     process = subprocess.Popen(["npm", "run", "dev"], cwd=BASE_DIR)
+    # We sleep to (I think) avoid a race condition where starlette tries to
+    # access the dist/ folder before everything is built.
+    # TODO: handle this maybe by waiting for the first build to finish
     time.sleep(1)
     return process

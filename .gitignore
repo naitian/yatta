@@ -1,6 +1,9 @@
 # random dev notes
 NOTES.md
 
+# Database
+*.db
+
 # Logs
 logs
 *.log
