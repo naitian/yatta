@@ -1,11 +1,19 @@
+from datetime import timedelta, datetime, timezone
 from contextlib import asynccontextmanager
-from typing import Union
+from typing import Union, Annotated
 
-from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
+from pydantic import ValidationError
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.exc import IntegrityError
 
-from yatta.server.db import create_db_and_tables
+from sqlmodel import select
+
+from yatta.server.db import create_db_and_tables, get_session
+from yatta.server.models import User, UserCreate, UserToken
+from yatta.server.dev import SPAStaticFiles
 from yatta.server.settings import settings
 from yatta.utils import SRC_DIR
 
@@ -17,23 +25,64 @@ async def lifespan(app: FastAPI):
     yield
 
 
-class SPAStaticFiles(StaticFiles):
-    async def get_response(self, path: str, scope):
-        try:
-            return await super().get_response(path, scope)
-        except (HTTPException, StarletteHTTPException) as ex:
-            if ex.status_code == 404:
-                return await super().get_response("index.html", scope)
-            else:
-                raise ex
-
-
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"port": settings.port}
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
+    return encoded_jwt
+
+
+@app.post("/api/register", response_model=User)
+async def create_user(user: UserCreate, session: Annotated[get_session, Depends()]):
+    hashed_password = generate_password_hash(user.password)
+    try:
+        db_user = User.model_validate(user, update={"hashed_password": hashed_password})
+        session.add(db_user)
+        session.commit()
+        session.refresh(db_user)
+        return db_user
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.errors())
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+
+@app.post("/api/token", response_model=UserToken)
+async def login(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    session: Annotated[get_session, Depends()],
+):
+    print(form_data.username)
+    print(form_data.password)
+    try:
+        user = session.exec(
+            select(User).where(User.username == form_data.username)
+        ).first()
+        if not user or not check_password_hash(
+            user.hashed_password, form_data.password
+        ):
+            raise HTTPException(
+                status_code=400, detail="Incorrect username or password"
+            )
+
+        access_token = create_access_token(
+            data={"sub": f"username.{user.username}"},
+            expires_delta=settings.access_timeout,
+        )
+        token = UserToken.model_validate(
+            user.model_dump(),
+            update={"access_token": access_token, "token_type": "bearer"},
+        )
+        return token
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.errors())
 
 
 app.mount(

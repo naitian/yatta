@@ -1,15 +1,7 @@
 from sqlmodel import Field, Session, SQLModel, create_engine
 
 from yatta.server.settings import settings
-
-
-class User(SQLModel, table=True):
-    id: int = Field(primary_key=True)
-    first_name: str
-    last_name: str
-    email: str
-    is_admin: bool
-    _password: str
+from yatta.server.models import User
 
 
 connect_args = {"check_same_thread": False}
