@@ -6,6 +6,8 @@ import { Link } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
+import * as styles from "../scss/form.module.scss";
+
 const sendCredentials = async (username, password, path) => {
     const response = await fetch(path, {
         method: "POST",
@@ -40,10 +42,10 @@ export function LoginPage() {
 
     return (
         <Base title="Login">
-            { user && <Navigate to="/" replace={true} />}
+            {user && <Navigate to="/" replace={true} />}
             <h1>Login</h1>
             <form>
-                <label>
+                <label className={styles.labeled_input}>
                     Username
                     <input
                         type="text" name="username"
@@ -51,7 +53,7 @@ export function LoginPage() {
                         onChange={(e) => setUsername(e.target.value)}
                     />
                 </label>
-                <label>
+                <label className={styles.labeled_input}>
                     Password
                     <input
                         type="password" name="password"
@@ -59,9 +61,11 @@ export function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </label>
-                <button onClick={handleSubmit}>Login</button>
+                <div style={{ display: "flex" }}>
+                    <button onClick={handleSubmit} className={styles.button}>Login</button>
+                    <Link to="/register" className={styles.secondary}>Register an account</Link>
+                </div>
             </form>
-            <Link to="/register">Register an account</Link>
         </Base>
     )
 }
@@ -109,7 +113,7 @@ export function RegisterPage() {
             {success && <Navigate to="/login" replace={true} />}
             <h1>Register</h1>
             <form>
-                <label>
+                <label className={styles.labeled_input}>
                     First Name
                     <input
                         type="text" name="first_name"
@@ -117,7 +121,7 @@ export function RegisterPage() {
                         onChange={(e) => setFirstname(e.target.value)}
                     />
                 </label>
-                <label>
+                <label className={styles.labeled_input}>
                     Last Name
                     <input
                         type="text" name="last_name"
@@ -125,7 +129,7 @@ export function RegisterPage() {
                         onChange={(e) => setLastname(e.target.value)}
                     />
                 </label>
-                <label>
+                <label className={styles.labeled_input}>
                     Username
                     <input
                         type="text" name="username"
@@ -133,7 +137,7 @@ export function RegisterPage() {
                         onChange={(e) => setUsername(e.target.value)}
                     />
                 </label>
-                <label>
+                <label className={styles.labeled_input}>
                     Password
                     <input
                         type="password" name="password"
@@ -141,9 +145,11 @@ export function RegisterPage() {
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </label>
-                <button onClick={handleSubmit}>Register</button>
+                <div style={{ display: "flex" }}>
+                    <button onClick={handleSubmit} className={styles.button}>Register</button>
+                    <Link to="/login" className={styles.secondary}>Log in instead</Link>
+                </div>
             </form>
-            <Link to="/login">Log in instead</Link>
         </Base>
     )
 }
@@ -155,5 +161,6 @@ export function LogoutPage() {
         logout();
     }, [])
     return (<Base title="Logout">
-        {user ? `Logging out...` : `You've been logged out!`}</Base>)
+        <h1>All good things...</h1>
+        {user ? `Logging out...` : `You're logged out!`}</Base>)
 }
