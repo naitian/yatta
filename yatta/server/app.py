@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 
 from sqlmodel import select
 
+from yatta.server.auth import add_user
 from yatta.server.db import create_db_and_tables, get_session
 from yatta.server.models import User, UserCreate, UserToken
 from yatta.server.dev import SPAStaticFiles
@@ -41,13 +42,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 @app.post("/api/register", response_model=User)
 async def create_user(user: UserCreate, session: Annotated[get_session, Depends()]):
-    hashed_password = generate_password_hash(user.password)
     try:
-        db_user = User.model_validate(user, update={"hashed_password": hashed_password})
-        session.add(db_user)
-        session.commit()
-        session.refresh(db_user)
-        return db_user
+        return add_user(user, session)
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=e.errors())
     except IntegrityError:
@@ -59,8 +55,6 @@ async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[get_session, Depends()],
 ):
-    print(form_data.username)
-    print(form_data.password)
     try:
         user = session.exec(
             select(User).where(User.username == form_data.username)

@@ -7,7 +7,7 @@ At some point we might want to split this into separate files for the
 ~aesthetics~ (readability) but for now this is fine.
 """
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, Relationship, JSON
 
 
 ### User
@@ -20,11 +20,13 @@ class UserBase(SQLModel):
     is_admin: None | bool = Field(default=False)
 
 
+
 class User(UserBase, table=True):
     """User model for the database."""
 
     id: int | None = Field(primary_key=True, default=None)
     hashed_password: str = Field(max_length=256)
+    assignments: list["AnnotationAssignment"] = Relationship(back_populates="user")
 
 
 class UserCreate(UserBase):
@@ -36,4 +38,14 @@ class UserToken(UserBase):
     token_type: str = "bearer"
 
 
-###
+### Annotations
+
+
+class AnnotationAssignment(SQLModel, table=True):
+    annotation_id: int | None = Field(primary_key=True, default=None)
+    datum_id: str = Field()
+    is_complete: bool = Field(default=False)
+    annotation: str | None = Field(sa_type=JSON, default=None)
+
+    user_id: int = Field(foreign_key="user.id")
+    user: User = Relationship(back_populates="assignments")
