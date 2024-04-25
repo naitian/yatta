@@ -71,6 +71,7 @@ export function LoginPage() {
 }
 
 export function RegisterPage() {
+    const { user } = useAuth();
     const [firstname, setFirstname] = useState("");
     const [lastname, setLastname] = useState("");
     const [username, setUsername] = useState("");
@@ -110,7 +111,7 @@ export function RegisterPage() {
 
     return (
         <Base title="Register">
-            {success && <Navigate to="/login" replace={true} />}
+            {(success || user) && <Navigate to="/login" replace={true} />}
             <h1>Register</h1>
             <form>
                 <label className={styles.labeled_input}>

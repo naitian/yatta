@@ -30,7 +30,9 @@ def load_config(func):
 
         # we don't import any server code until the config is loaded
         from yatta.server.db import create_db_and_tables
-
+        from yatta.server.settings import settings
+        if len(settings.dataset) > 50_000:
+            click.echo("Warning: large dataset detected. This may slow down the server.")
         create_db_and_tables()
 
         return func(*args, **kwargs)

@@ -21,7 +21,6 @@ class UserBase(SQLModel):
     is_admin: None | bool = Field(default=False)
 
 
-
 class User(UserBase, table=True):
     """User model for the database."""
 
@@ -44,7 +43,14 @@ class UserCreate(UserBase):
     password: str
 
 
-class UserToken(UserBase):
+class UserResponse(UserBase):
+    # TODO: this is a computed field in the database; we replicate it here for
+    # the API response
+    num_completed: int
+    num_assigned: int
+
+
+class UserToken(UserResponse):
     access_token: str
     token_type: str = "bearer"
 

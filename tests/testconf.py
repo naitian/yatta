@@ -1,5 +1,5 @@
 from yatta.config.default import *  # noqa: F403, F401
-from yatta.dataset import DSVDataset
+from yatta.dataset.dsv import DSVDataset
 
 
 DATASET = DSVDataset("./tests/simple.csv")

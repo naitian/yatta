@@ -15,7 +15,26 @@ export function AuthProvider({ children }) {
         setUser(null);
     };
 
-    const value = useMemo(() => ({ user, login, logout }), [user]);
+    const update = async () => {
+        console.log(user)
+        if (!user) return
+        const response = await fetch("/api/refresh", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${user.access_token}`,
+            },
+        });
+        const newUser = await response.json();
+        console.log(newUser)
+        console.log(response)
+        if (!response.ok) {
+            // setUser(null);
+            return;
+        }
+        setUser(newUser);
+    }
+
+    const value = useMemo(() => ({ user, login, logout, update }), [user]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

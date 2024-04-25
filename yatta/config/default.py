@@ -15,6 +15,6 @@ DATABASE = None  # defaults to "sqlite:///" + os.path.join(os.getcwd(), settings
 
 # NOTE: you must always change this!
 SECRET_KEY = "super-secret-key"
-ACCESS_TIMEOUT = timedelta(weeks=1)  # 1 week
+ACCESS_TIMEOUT = timedelta(hours=1)
 
 DATA_DISTRIBUTORS = {"all": AllDistributor, "round_robin": RoundRobinDistributor}

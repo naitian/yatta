@@ -5,6 +5,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
 import { AuthProvider } from "./hooks/useAuth";
 import Error from "./pages/error";
+import { Protected } from "./components/layout";
 import { LoginPage, RegisterPage, LogoutPage } from "./pages/login";
 import Root from "./pages/root";
 
@@ -12,7 +13,7 @@ import Root from "./pages/root";
 const router = createBrowserRouter([
     {
         path: "/",
-        element: <Root />,
+        element: <Protected><Root /></Protected>,
         errorElement: <Error />,
     },
     {
