@@ -21,6 +21,5 @@ INTERNAL_CONFIG_PATH = SRC_DIR / "config" / "__internal.py"
 def link_config_path(config_path: Path | str) -> None:
     """Create symlink from the internal config to the given path."""
     import os
-    if INTERNAL_CONFIG_PATH.exists():
-        INTERNAL_CONFIG_PATH.unlink()
+    INTERNAL_CONFIG_PATH.unlink(missing_ok=True)
     os.symlink(Path(config_path).resolve(), INTERNAL_CONFIG_PATH)
