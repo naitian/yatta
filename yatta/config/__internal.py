@@ -1,1 +1,1 @@
-/Users/naitian/Documents/Projects/yatta2/yatta/config/default.py
+/Users/naitian/Documents/Projects/yatta2/tests/testconf.py

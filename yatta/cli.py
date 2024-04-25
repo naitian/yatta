@@ -30,6 +30,7 @@ def load_config(func):
 
         # we don't import any server code until the config is loaded
         from yatta.server.db import create_db_and_tables
+
         create_db_and_tables()
 
         return func(*args, **kwargs)
@@ -47,7 +48,6 @@ def dev():
     run_frontend_dev()
 
     from yatta.server.settings import settings
-
     uvicorn.run("yatta.server.app:app", port=settings.port, reload=True)
 
 
@@ -82,6 +82,7 @@ def assign(distributor, exclude_users):
 @cli.group()
 def user():
     pass
+
 
 @user.command()
 @load_config
@@ -118,8 +119,9 @@ def list():
     with Session(engine) as db:
         users = db.exec(select(User)).all()
         for user in users:
+            stats = f" ({user.num_completed}/{user.num_assigned})"
             admin = " (admin)" if user.is_admin else ""
-            click.echo(f"{user.id}: {user.username}{admin}")
+            click.echo(f"{user.id}: {user.username}{stats}{admin}")
 
 
 @user.command()

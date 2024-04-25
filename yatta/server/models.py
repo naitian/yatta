@@ -8,6 +8,7 @@ At some point we might want to split this into separate files for the
 """
 
 from sqlmodel import Field, SQLModel, Relationship, JSON
+from pydantic import computed_field
 
 
 ### User
@@ -27,6 +28,16 @@ class User(UserBase, table=True):
     id: int | None = Field(primary_key=True, default=None)
     hashed_password: str = Field(max_length=256)
     assignments: list["AnnotationAssignment"] = Relationship(back_populates="user")
+
+    @computed_field
+    @property
+    def num_completed(self) -> int:
+        return len([a for a in self.assignments if a.is_complete])
+
+    @computed_field
+    @property
+    def num_assigned(self) -> int:
+        return len(self.assignments)
 
 
 class UserCreate(UserBase):
