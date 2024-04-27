@@ -8,7 +8,7 @@ At some point we might want to split this into separate files for the
 """
 
 from sqlmodel import Field, SQLModel, Relationship, JSON
-from pydantic import computed_field
+from pydantic import BaseModel, computed_field, Json
 
 
 ### User
@@ -60,9 +60,19 @@ class UserToken(UserResponse):
 
 class AnnotationAssignment(SQLModel, table=True):
     annotation_id: int | None = Field(primary_key=True, default=None)
-    datum_id: str = Field()
+    datum_id: int = Field()
     is_complete: bool = Field(default=False)
-    annotation: str | None = Field(sa_type=JSON, default=None)
+    annotation: Json | None = Field(sa_type=JSON, default=None)
 
     user_id: int = Field(foreign_key="user.id")
     user: User = Relationship(back_populates="assignments")
+
+
+# TODO: support more types (e.g., many datasets are potentially nparrays)
+# We might want to add a function that normalizes different types of data into
+# JSON
+class AnnotationAssignmentResponse(BaseModel):
+    datum: Json | int | str
+    annotation: Json | None
+    is_complete: bool
+    task: Json | None

@@ -4,7 +4,7 @@ import click
 import uvicorn
 
 from yatta.server.dev import run_frontend_dev, setup_frontend_dev
-from yatta.utils import relative_path, link_config_path
+from yatta.utils import relative_path, link_config_path, SRC_DIR
 
 
 @click.group()
@@ -28,16 +28,33 @@ def load_config(func):
         print("Using config file:", config)
         link_config_path(config)
 
+        # TODO: save and check against dataset hash, and prompt to reassign
+        # and/or migrate annotations if different
+
         # we don't import any server code until the config is loaded
         from yatta.server.db import create_db_and_tables
         from yatta.server.settings import settings
-        if len(settings.dataset) > 50_000:
-            click.echo("Warning: large dataset detected. This may slow down the server.")
+
+        if "dataset" not in settings.__dict__:
+            click.echo("No dataset specified in config file")
+        elif len(settings.dataset) > 50_000:
+            click.echo(
+                "Warning: large dataset detected. This may slow down the server."
+            )
         create_db_and_tables()
 
         return func(*args, **kwargs)
 
     return wrapper
+
+
+@cli.command()
+@load_config
+def list_plugins():
+    """List available plugins"""
+    from yatta.server.plugins import get_plugins
+
+    print(get_plugins())
 
 
 @cli.command()
@@ -50,7 +67,13 @@ def dev():
     run_frontend_dev()
 
     from yatta.server.settings import settings
-    uvicorn.run("yatta.server.app:app", port=settings.port, reload=True)
+
+    uvicorn.run(
+        "yatta.server.app:app",
+        port=settings.port,
+        reload=True,
+        reload_dirs=[str(SRC_DIR)],
+    )
 
 
 @cli.command()

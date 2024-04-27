@@ -8,6 +8,7 @@ import Error from "./pages/error";
 import { Protected } from "./components/layout";
 import { LoginPage, RegisterPage, LogoutPage } from "./pages/login";
 import Root from "./pages/root";
+import Annotate from "./pages/annotate";
 
 
 const router = createBrowserRouter([
@@ -27,6 +28,10 @@ const router = createBrowserRouter([
     {
         path: "logout/",
         element: <LogoutPage />,
+    },
+    {
+        path: "annotate/",
+        element: <Protected><Annotate /></Protected>,
     }
 ])
 

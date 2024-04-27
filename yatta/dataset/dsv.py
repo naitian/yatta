@@ -27,8 +27,8 @@ class DSVDataset():
             for row in tqdm(reader, disable=not self.verbose):
                 yield row
 
-    def __getitem__(self, idx: str):
-        return self.data[int(idx)]
+    def __getitem__(self, idx):
+        return self.data[idx]
 
     def __len__(self):
         return len(self.data)

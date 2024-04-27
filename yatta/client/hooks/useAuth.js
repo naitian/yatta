@@ -16,7 +16,6 @@ export function AuthProvider({ children }) {
     };
 
     const update = async () => {
-        console.log(user)
         if (!user) return
         const response = await fetch("/api/refresh", {
             method: "POST",
@@ -25,10 +24,8 @@ export function AuthProvider({ children }) {
             },
         });
         const newUser = await response.json();
-        console.log(newUser)
-        console.log(response)
         if (!response.ok) {
-            // setUser(null);
+            setUser(null);
             return;
         }
         setUser(newUser);

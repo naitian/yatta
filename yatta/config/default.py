@@ -1,6 +1,6 @@
 """Default configuration file."""
 
-import os
+from pydantic import BaseModel
 from datetime import timedelta
 
 from yatta.distributor import AllDistributor, RoundRobinDistributor

@@ -1,20 +1,27 @@
-from datetime import timedelta, datetime, timezone
 from contextlib import asynccontextmanager
-from typing import Union, Annotated
+from typing import Annotated
 
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from pydantic import ValidationError
 from werkzeug.security import check_password_hash
 from sqlalchemy.exc import IntegrityError
 
-from sqlmodel import select
+from sqlmodel import Session, select
 
-from yatta.server.auth import add_user
+from yatta.server.auth import add_user, create_token
 from yatta.server.db import create_db_and_tables, get_session
-from yatta.server.models import User, UserCreate, UserToken
+from yatta.server.models import (
+    User,
+    UserCreate,
+    UserToken,
+    AnnotationAssignment,
+    AnnotationAssignmentResponse,
+)
 from yatta.server.dev import SPAStaticFiles
+from yatta.server.plugins import get_plugins
 from yatta.server.settings import settings
 from yatta.utils import SRC_DIR
 
@@ -27,29 +34,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-
-
-def create_jwt(data: dict, expires_delta: timedelta | None = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
-    return encoded_jwt
-
-
-def create_token(user: User, expires_delta: timedelta | None = None):
-    access_token = create_jwt(
-        data={"sub": f"username.{user.username}"},
-        expires_delta=expires_delta
-        if expires_delta is not None
-        else settings.access_timeout,
-    )
-    return UserToken.model_validate(
-        user.model_dump(), update={"access_token": access_token, "token_type": "bearer"}
-    )
 
 
 def get_current_user(
@@ -112,6 +96,77 @@ async def refresh(
     token = create_token(user)
     return token
 
+
+def get_annotation_assignment(user: User, datum_id: str, session: Session):
+    annotation_assignment = session.exec(
+        select(AnnotationAssignment)
+        .where(AnnotationAssignment.user_id == user.id)
+        .where(AnnotationAssignment.datum_id == datum_id)
+    ).first()
+    if not annotation_assignment:
+        raise HTTPException(status_code=404, detail="Annotation assignment not found")
+    return annotation_assignment
+
+
+@app.get("/api/annotate/{datum_id}")
+async def get_annotation(
+    datum_id: int,
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[get_session, Depends()],
+):
+    annotation_assignment = get_annotation_assignment(user, datum_id, session)
+    datum = settings.dataset[datum_id]
+    return AnnotationAssignmentResponse(
+        **{
+            "datum": datum,
+            "annotation": annotation_assignment.annotation,
+            "is_complete": annotation_assignment.is_complete,
+        }
+    )
+
+
+@app.post("/api/annotate/{datum_id}")
+async def post_annotation(
+    datum_id: int,
+    user: Annotated[User, Depends(get_current_user)],
+    annotation: str,
+    session: Annotated[get_session, Depends()],
+):
+    annotation_assignment = get_annotation_assignment(user, datum_id, session)
+    annotation_assignment.annotation = annotation
+
+    try:
+        AnnotationAssignment.model_validate(annotation_assignment)
+        annotation_assignment.is_complete = True
+        session.add(annotation_assignment)
+        session.commit()
+    except ValidationError as e:
+        session.rollback()
+        raise HTTPException(status_code=400, detail="Invalid annotation: " + str(e))
+
+    return AnnotationAssignmentResponse(
+        datum=settings.dataset[datum_id],
+        annotation=annotation,
+        is_complete=annotation_assignment.is_complete,
+    )
+
+
+@app.get("/api/task")
+async def get_task(
+    user: Annotated[User, Depends(get_current_user)]
+):
+    return {
+        "task": settings.task,
+        "dependencies": [f"{name}.js" for name in get_plugins()]
+    }
+
+
+@app.get("/plugins/{plugin_name}.js")
+async def get_plugin(plugin_name: str):
+    plugins = get_plugins()
+    if plugin_name not in plugins:
+        raise HTTPException(status_code=404, detail="Plugin not found")
+    return FileResponse(plugins[plugin_name].JS_PATH)
 
 app.mount(
     "/",

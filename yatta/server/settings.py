@@ -26,12 +26,11 @@ class Settings:
         spec = importlib.util.spec_from_file_location(
             INTERNAL_CONFIG_PATH.stem, INTERNAL_CONFIG_PATH
         )
-        module = importlib.util.module_from_spec(spec) 
+        module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._settings, name.upper())
-
 
 settings = Settings()
