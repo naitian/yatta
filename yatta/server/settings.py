@@ -7,7 +7,6 @@ provide settings.
 import importlib
 import importlib.util
 from functools import lru_cache
-from typing import Any
 
 from yatta.utils import INTERNAL_CONFIG_PATH
 

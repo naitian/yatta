@@ -5,10 +5,6 @@ from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any, Callable
 
-from pydantic import BaseModel
-
-from yatta.server.dev import setup_frontend_dev
-
 
 def get_plugins():
     """Get all plugins."""

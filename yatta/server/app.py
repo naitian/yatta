@@ -1,39 +1,73 @@
+import itertools
+import json
 from contextlib import asynccontextmanager
 from typing import Annotated
-import json
 
-from fastapi import FastAPI, Depends, HTTPException, Response, status, APIRouter
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
-from pydantic import BaseModel, ValidationError
-from werkzeug.security import check_password_hash
+from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
-
 from sqlmodel import Session, select
+from werkzeug.security import check_password_hash
 
 from yatta.server.auth import add_user, create_token
-from yatta.server.db import create_db_and_tables, get_session
+from yatta.server.db import create_db_and_tables, engine, get_session
+from yatta.server.dev import SPAStaticFiles
 from yatta.server.models import (
+    AnnotationAssignment,
+    AnnotationAssignmentResponse,
     AnnotationObject,
     User,
     UserCreate,
     UserResponse,
     UserToken,
-    AnnotationAssignment,
-    AnnotationAssignmentResponse,
 )
-from yatta.server.dev import SPAStaticFiles
-from yatta.server.plugins import get_plugins
 from yatta.server.settings import settings
 from yatta.utils import SRC_DIR
+
+
+def sliding_window(seq, n):
+    """Returns a sliding window (of width n) over data from the iterable"""
+    it = iter(seq)
+    result = tuple(itertools.islice(it, n))
+    if len(result) == n:
+        yield result
+    for elem in it:
+        result = result[1:] + (elem,)
+        yield result
+
+
+
+def assign_ordering(ordering, assignments, session):
+    """Assign an ordering to a list of assignments"""
+    for idx, (prev, curr, next) in enumerate(
+        sliding_window(itertools.chain([None], ordering(assignments), [None]), 3)
+    ):
+        curr.rank = idx
+        curr.prev = prev.datum_id if prev is not None else None
+        curr.next = next.datum_id if next is not None else None
+    session.commit()
+
+
+def assign_all_orderings():
+    with Session(engine) as session:
+        users = session.exec(select(User)).all()
+        for user in users:
+            assignments = session.exec(
+                select(AnnotationAssignment).where(
+                    AnnotationAssignment.user_id == user.id
+                )
+            ).all()
+            assign_ordering(settings.ordering, assignments, session)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Starting up")
     create_db_and_tables()
+    assign_all_orderings()
     yield
 
 
@@ -142,6 +176,8 @@ async def get_annotation(
             # The same happens in the POST request
             "annotation": json.dumps(annotation_assignment.annotation),
             "is_complete": annotation_assignment.is_complete,
+            "next": annotation_assignment.next,
+            "prev": annotation_assignment.prev,
         }
     )
 
@@ -174,6 +210,8 @@ async def post_annotation(
         datum=settings.dataset[datum_id],
         annotation=json.dumps(annotation_assignment.annotation),
         is_complete=annotation_assignment.is_complete,
+        next=annotation_assignment.next,
+        prev=annotation_assignment.prev,
     )
 
 

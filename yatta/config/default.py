@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 from datetime import timedelta
 
 from yatta.distributor import Distributor, AllDistributor, RoundRobinDistributor
+from yatta.ordering import DataOrdering, SequentialOrdering
 from yatta.server.plugins import Component
 
 
@@ -22,6 +23,7 @@ class Settings(BaseModel):
         "all": AllDistributor,
         "round_robin": RoundRobinDistributor,
     }
+    ordering: DataOrdering = SequentialOrdering
 
 
     # NOTE: you must always change this!

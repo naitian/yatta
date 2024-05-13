@@ -73,9 +73,12 @@ class AnnotationAssignment(SQLModel, table=True):
     is_complete: bool = Field(default=False)
     annotation: Json | None = Field(sa_type=JSON, default=None)
 
+    rank: int = Field(default=0)
+    next: int | None = Field(default=None)
+    prev: int | None = Field(default=None)
+
     user_id: int = Field(foreign_key="user.id")
     user: User = Relationship(back_populates="assignments")
-
 
 # TODO: support more types (e.g., many datasets are potentially nparrays)
 # We might want to add a function that normalizes different types of data into
@@ -84,7 +87,8 @@ class AnnotationAssignmentResponse(BaseModel):
     datum: Json | dict | int | str
     annotation: Json | None
     is_complete: bool
-    # task: Json | None
+    next: int | None
+    prev: int | None
 
 
 class AnnotationObject(BaseModel):
