@@ -12,25 +12,21 @@ from typing import Any
 from yatta.utils import INTERNAL_CONFIG_PATH
 
 
-class Settings:
-    """Settings manager for the server."""
+@lru_cache
+def load_settings(settings_name: str = "default"):
+    """Load settings from the given module."""
+    spec = importlib.util.spec_from_file_location(
+        INTERNAL_CONFIG_PATH.stem, INTERNAL_CONFIG_PATH
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
 
-    _settings = None
-
-    def __init__(self):
-        self._settings = self.load()
-
-    @lru_cache
-    def load(self):
-        """Load settings from the given module."""
-        spec = importlib.util.spec_from_file_location(
-            INTERNAL_CONFIG_PATH.stem, INTERNAL_CONFIG_PATH
+    if hasattr(module, settings_name):
+        return getattr(module, settings_name)
+    else:
+        raise ValueError(
+            f"Settings {settings_name} not found in {INTERNAL_CONFIG_PATH.resolve()}"
         )
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
 
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._settings, name.upper())
 
-settings = Settings()
+settings = load_settings()

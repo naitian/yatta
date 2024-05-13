@@ -38,6 +38,14 @@ class User(UserBase, table=True):
     def num_assigned(self) -> int:
         return len(self.assignments)
 
+    @computed_field
+    @property
+    def next_assignment(self) -> int | None:
+        for a in self.assignments:
+            if not a.is_complete:
+                return a.datum_id
+        return None
+
 
 class UserCreate(UserBase):
     password: str
@@ -48,6 +56,7 @@ class UserResponse(UserBase):
     # the API response
     num_completed: int
     num_assigned: int
+    next_assignment: int | None
 
 
 class UserToken(UserResponse):
@@ -72,7 +81,12 @@ class AnnotationAssignment(SQLModel, table=True):
 # We might want to add a function that normalizes different types of data into
 # JSON
 class AnnotationAssignmentResponse(BaseModel):
-    datum: Json | int | str
+    datum: Json | dict | int | str
     annotation: Json | None
     is_complete: bool
-    task: Json | None
+    # task: Json | None
+
+
+class AnnotationObject(BaseModel):
+    annotation: Json | None
+

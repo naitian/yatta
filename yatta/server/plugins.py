@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 from importlib.metadata import entry_points
+from pathlib import Path
+from typing import Any, Callable
 
 from pydantic import BaseModel
 
@@ -21,13 +23,26 @@ def setup_plugins():
     plugins = get_plugins()
     if len(plugins) == 0:
         return
-    else:
-        setup_frontend_dev()
 
 
 
 @dataclass
-class BaseComponent():
-    """Base class for all components."""
-    name: str
-    props: BaseModel
+class Component():
+    """Base class for components"""
+    name: str = None
+    _esm: str | Path = None
+    _css: str | Path = None
+    transform: Callable[[Any], dict] = lambda x: str(x)
+
+    def __post_init__(self):
+        if self.name is None:
+            self.name = self.__class__.__name__
+
+        self._esm = self._read_file_if_path(self._esm)
+        self._css = self._read_file_if_path(self._css)
+
+    def _read_file_if_path(self, path):
+        if isinstance(path, Path):
+            with open(path, "r") as f:
+                return f.read()
+        return path

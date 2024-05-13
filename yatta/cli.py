@@ -1,9 +1,11 @@
 import functools
+import json
 
 import click
 import uvicorn
 
-from yatta.server.dev import run_frontend_dev, setup_frontend_dev
+from yatta.server.dev import run_frontend_dev, setup_frontend_dev, SERVER_DEV_PORT
+from yatta.server.plugins import setup_plugins
 from yatta.utils import relative_path, link_config_path, SRC_DIR
 
 
@@ -16,11 +18,16 @@ def load_config(func):
     @click.option(
         "--config",
         "-c",
-        default=relative_path("config/default.py"),
         help="Path to the configuration file",
     )
+    @click.option(
+        "--config_name",
+        "-n",
+        default="default",
+        help="Name of the settings object in the configuration file",
+    )
     @functools.wraps(func)
-    def wrapper(config, *args, **kwargs):
+    def wrapper(config, config_name, *args, **kwargs):
         # we create a symlink to an internal config file path so that the server can
         # load from a known path -- this is necessary because we can't pass the path
         # in at runtime.
@@ -31,11 +38,14 @@ def load_config(func):
         # TODO: save and check against dataset hash, and prompt to reassign
         # and/or migrate annotations if different
 
+        # set up plugins
+        setup_plugins()
+
         # we don't import any server code until the config is loaded
         from yatta.server.db import create_db_and_tables
         from yatta.server.settings import settings
 
-        if "dataset" not in settings.__dict__:
+        if settings.dataset is None:
             click.echo("No dataset specified in config file")
         elif len(settings.dataset) > 50_000:
             click.echo(
@@ -60,20 +70,39 @@ def list_plugins():
 @cli.command()
 @load_config
 def dev():
-    """Run the development server"""
+    """Run the development server
+    
+    The development server uses the vite dev server and proxies requests to the
+    API server.
+
+    The production server flips this, serving the frontend from the API server.
+    """
     # check if npm is installed
     if not setup_frontend_dev():
         return
-    run_frontend_dev()
 
     from yatta.server.settings import settings
 
+    run_frontend_dev(port=settings.port)
     uvicorn.run(
-        "yatta.server.app:app",
-        port=settings.port,
+        "yatta.server.app:dev",
+        port=SERVER_DEV_PORT,
         reload=True,
         reload_dirs=[str(SRC_DIR)],
     )
+
+
+@cli.command()
+@load_config
+def dump_annotations():
+    from yatta.server.db import Session, engine
+    from yatta.server.models import AnnotationAssignment
+    from sqlmodel import select
+
+    with Session(engine) as db:
+        annotations = db.exec(select(AnnotationAssignment)).all()
+        for annotation in annotations:
+            click.echo(json.dumps(annotation.annotation))
 
 
 @cli.command()
@@ -93,12 +122,12 @@ def assign(distributor, exclude_users):
         if distributor not in distributors:
             raise ValueError("Distributor {} not found".format(distributor))
         distributor = distributors[distributor](settings.dataset)
-        assignments = list(distributor.assign([user for user in users]))
+        assignments = list(distributor.assign([user.id for user in users]))
         assignments = [
             AnnotationAssignment(
-                user_id=user.id, datum_id=index, is_complete=False, annotation=None
+                user_id=user_id, datum_id=index, is_complete=False, annotation=None
             )
-            for user, index in assignments
+            for user_id, index in assignments
         ]
         db.add_all(assignments)
         db.commit()
@@ -134,9 +163,9 @@ def add(first_name, last_name, username, password):
         click.echo(f"User {username} added successfully!")
 
 
-@user.command()
+@user.command(name="list")
 @load_config
-def list():
+def list_users():
     from yatta.server.db import Session, engine
     from yatta.server.models import User
     from sqlmodel import select

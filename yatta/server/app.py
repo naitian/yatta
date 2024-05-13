@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
+import json
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
 from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from werkzeug.security import check_password_hash
 from sqlalchemy.exc import IntegrityError
 
@@ -14,8 +16,10 @@ from sqlmodel import Session, select
 from yatta.server.auth import add_user, create_token
 from yatta.server.db import create_db_and_tables, get_session
 from yatta.server.models import (
+    AnnotationObject,
     User,
     UserCreate,
+    UserResponse,
     UserToken,
     AnnotationAssignment,
     AnnotationAssignmentResponse,
@@ -33,7 +37,14 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(lifespan=lifespan)
+app_config = dict(
+    lifespan=lifespan,
+    openapi_url="/api/openapi.json",
+)
+app = FastAPI(**app_config)
+dev = FastAPI(**app_config)
+
+api = APIRouter()
 
 
 def get_current_user(
@@ -58,7 +69,7 @@ def get_current_user(
         raise HTTPException(status_code=400, detail="Invalid token")
 
 
-@app.post("/api/register", response_model=User)
+@api.post("/api/register", response_model=User)
 async def create_user(user: UserCreate, session: Annotated[get_session, Depends()]):
     try:
         return add_user(user, session)
@@ -68,7 +79,7 @@ async def create_user(user: UserCreate, session: Annotated[get_session, Depends(
         raise HTTPException(status_code=400, detail="Username already exists")
 
 
-@app.post("/api/token", response_model=UserToken)
+@api.post("/api/token", response_model=UserToken)
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[get_session, Depends()],
@@ -89,12 +100,19 @@ async def login(
         raise HTTPException(status_code=400, detail=e.errors())
 
 
-@app.post("/api/refresh", response_model=UserToken)
+@api.post("/api/refresh", response_model=UserToken)
 async def refresh(
     user: Annotated[User, Depends(get_current_user)],
 ):
     token = create_token(user)
     return token
+
+
+@api.get("/api/user", response_model=UserResponse)
+async def user_info(
+    user: Annotated[User, Depends(get_current_user)],
+):
+    return user
 
 
 def get_annotation_assignment(user: User, datum_id: str, session: Session):
@@ -108,7 +126,7 @@ def get_annotation_assignment(user: User, datum_id: str, session: Session):
     return annotation_assignment
 
 
-@app.get("/api/annotate/{datum_id}")
+@api.get("/api/annotate/{datum_id}")
 async def get_annotation(
     datum_id: int,
     user: Annotated[User, Depends(get_current_user)],
@@ -119,57 +137,70 @@ async def get_annotation(
     return AnnotationAssignmentResponse(
         **{
             "datum": datum,
-            "annotation": annotation_assignment.annotation,
+            # NOTE: the Json type expects a string, so we serialize the dict
+            # this gets converted from a string back into JSON in the response
+            # The same happens in the POST request
+            "annotation": json.dumps(annotation_assignment.annotation),
             "is_complete": annotation_assignment.is_complete,
         }
     )
 
 
-@app.post("/api/annotate/{datum_id}")
+@api.post("/api/annotate/{datum_id}")
 async def post_annotation(
     datum_id: int,
+    annotation: AnnotationObject,
     user: Annotated[User, Depends(get_current_user)],
-    annotation: str,
     session: Annotated[get_session, Depends()],
 ):
-    annotation_assignment = get_annotation_assignment(user, datum_id, session)
-    annotation_assignment.annotation = annotation
+    print(annotation.annotation)
 
     try:
-        AnnotationAssignment.model_validate(annotation_assignment)
-        annotation_assignment.is_complete = True
-        session.add(annotation_assignment)
+        annotation_assignment = get_annotation_assignment(user, datum_id, session)
+        annotation_assignment.annotation = annotation.annotation
+        annotation_assignment.is_complete = annotation.annotation is not None
         session.commit()
     except ValidationError as e:
         session.rollback()
         raise HTTPException(status_code=400, detail="Invalid annotation: " + str(e))
 
+    print(annotation_assignment.annotation)
+
     return AnnotationAssignmentResponse(
         datum=settings.dataset[datum_id],
-        annotation=annotation,
+        annotation=json.dumps(annotation_assignment.annotation),
         is_complete=annotation_assignment.is_complete,
     )
 
 
-@app.get("/api/task")
-async def get_task(
-    user: Annotated[User, Depends(get_current_user)]
-):
+@api.get("/api/task")
+async def get_task(user: Annotated[User, Depends(get_current_user)]):
     return {
         "task": settings.task,
-        "dependencies": [f"{name}.js" for name in get_plugins()]
+        "dependencies": [f"{name}.js" for name in get_plugins()],
     }
 
 
-@app.get("/plugins/{plugin_name}.js")
-async def get_plugin(plugin_name: str):
+@api.get("/components/{component_name}")
+async def get_plugin(component_name: str):
     plugins = get_plugins()
-    if plugin_name not in plugins:
-        raise HTTPException(status_code=404, detail="Plugin not found")
-    return FileResponse(plugins[plugin_name].JS_PATH)
+    # if plugin_name not in plugins:
+    #     raise HTTPException(status_code=404, detail="Plugin not found")
+    # return FileResponse(plugins[plugin_name].JS_PATH)
 
+
+print(settings.static_files)
+for name, path in settings.static_files.items():
+    print(name, path)
+    api.mount(f"/files/{name}/", StaticFiles(directory=path, html=False, check_dir=True), name=name)
+    dev.mount(f"/files/{name}/", StaticFiles(directory=path, html=False, check_dir=True), name=name)
+
+app.include_router(api)
 app.mount(
     "/",
-    SPAStaticFiles(directory=SRC_DIR / "client" / "dist", html=True),
+    SPAStaticFiles(directory=SRC_DIR / "client" / "build", html=True, check_dir=False),
     name="client",
 )
+
+
+dev.include_router(api)
