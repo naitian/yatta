@@ -91,6 +91,22 @@ def dev():
         reload_dirs=[str(SRC_DIR)],
     )
 
+@cli.command()
+@load_config
+def serve():
+    """Run the development server
+    
+    The development server uses the vite dev server and proxies requests to the
+    API server.
+
+    The production server flips this, serving the frontend from the API server.
+    """
+    from yatta.server.settings import settings
+    uvicorn.run(
+        "yatta.server.app:app",
+        port=settings.port,
+    )
+
 
 @cli.command()
 @load_config

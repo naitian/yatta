@@ -20,6 +20,7 @@ email-validator = "^2.1.1"
 werkzeug = "^3.0.2"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 tqdm = "^4.66.2"
+quart = "^0.19.5"
 
 [tool.poetry.scripts]
 yatta = "yatta.cli:cli"

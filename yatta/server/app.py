@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 import json
 
-from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
+from fastapi import FastAPI, Depends, HTTPException, Response, status, APIRouter
 from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
@@ -158,7 +158,11 @@ async def post_annotation(
     try:
         annotation_assignment = get_annotation_assignment(user, datum_id, session)
         annotation_assignment.annotation = annotation.annotation
-        annotation_assignment.is_complete = annotation.annotation is not None
+        # only mark as complete if the client says it is
+        # otherwise, we assume the client is just saving progress
+        annotation_assignment.is_complete = (
+            annotation.annotation is not None and annotation.is_complete
+        )
         session.commit()
     except ValidationError as e:
         session.rollback()
@@ -177,28 +181,50 @@ async def post_annotation(
 async def get_task(user: Annotated[User, Depends(get_current_user)]):
     return {
         "task": settings.task,
-        "dependencies": [f"{name}.js" for name in get_plugins()],
+        "components": list(aggregate_component_names(settings.task).keys()),
     }
 
 
-@api.get("/components/{component_name}")
+def aggregate_component_names(task):
+    """
+    task is a dict with keys as the field names and values as the components,
+    which have a name attribute
+
+    for now, we ignore components with children; we can add this later
+
+    return a dict component.name -> component
+    """
+    return {component.name: component for component in task.values()}
+
+
+@api.get("/api/component/{component_name}")
 async def get_plugin(component_name: str):
-    plugins = get_plugins()
-    # if plugin_name not in plugins:
-    #     raise HTTPException(status_code=404, detail="Plugin not found")
-    # return FileResponse(plugins[plugin_name].JS_PATH)
+    components = aggregate_component_names(settings.task)
+    if component_name not in components:
+        raise HTTPException(status_code=404, detail="Component not found")
+    return Response(
+        content=components[component_name]._esm, media_type="application/javascript"
+    )
 
 
 print(settings.static_files)
 for name, path in settings.static_files.items():
     print(name, path)
-    api.mount(f"/files/{name}/", StaticFiles(directory=path, html=False, check_dir=True), name=name)
-    dev.mount(f"/files/{name}/", StaticFiles(directory=path, html=False, check_dir=True), name=name)
+    api.mount(
+        f"/files/{name}/",
+        StaticFiles(directory=path, html=False, check_dir=True),
+        name=name,
+    )
+    dev.mount(
+        f"/files/{name}/",
+        StaticFiles(directory=path, html=False, check_dir=True),
+        name=name,
+    )
 
 app.include_router(api)
 app.mount(
     "/",
-    SPAStaticFiles(directory=SRC_DIR / "client" / "build", html=True, check_dir=False),
+    SPAStaticFiles(directory=SRC_DIR / "client" / "dist", html=True, check_dir=False),
     name="client",
 )
 

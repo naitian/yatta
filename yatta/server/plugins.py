@@ -25,13 +25,14 @@ def setup_plugins():
         return
 
 
-
-@dataclass
-class Component():
+@dataclass(kw_only=True)
+class Component:
     """Base class for components"""
-    name: str = None
-    _esm: str | Path = None
-    _css: str | Path = None
+
+    name: str
+    _esm: str | Path
+    _css: str | Path = ""
+    props: dict | None = None
     transform: Callable[[Any], dict] = lambda x: str(x)
 
     def __post_init__(self):
@@ -46,3 +47,13 @@ class Component():
             with open(path, "r") as f:
                 return f.read()
         return path
+
+    def to_dict(self):
+        """
+        Convert to a dictionary but exclude the transform function, _esm, and _css.
+        """
+        return {
+            k: v
+            for k, v in self.__dict__.items()
+            if k not in ["transform", "_esm", "_css"]
+        }

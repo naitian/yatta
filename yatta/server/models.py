@@ -89,4 +89,5 @@ class AnnotationAssignmentResponse(BaseModel):
 
 class AnnotationObject(BaseModel):
     annotation: Json | None
+    is_complete: bool = False
 
