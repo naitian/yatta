@@ -86,10 +86,14 @@
 	};
 	const handlePrev = async () => {
         if (assignment.prev === null) return;
+        await postAssignment(annotation, false);
 		return navigate(`/annotate/${assignment.prev}`);
 	};
 
-	$: postAssignment(annotation);
+    // This constantly saves the annotation, which prevents lost work
+    // BUT complicates the logic for is_complete
+    // We just save when the user presses one of the buttons instead for now
+	// $: postAssignment(annotation);
 </script>
 
 <svelte:window on:keydown={handleKeys} />
