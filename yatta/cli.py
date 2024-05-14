@@ -1,12 +1,14 @@
+from datetime import datetime
 import functools
 import json
 
 import click
+import pandas as pd
 import uvicorn
 
-from yatta.server.dev import run_frontend_dev, setup_frontend_dev, SERVER_DEV_PORT
+from yatta.server.dev import SERVER_DEV_PORT, run_frontend_dev, setup_frontend_dev
 from yatta.server.plugins import setup_plugins
-from yatta.utils import link_config_path, SRC_DIR
+from yatta.utils import SRC_DIR, link_config_path
 
 
 @click.group()
@@ -71,7 +73,7 @@ def list_plugins():
 @load_config
 def dev():
     """Run the development server
-    
+
     The development server uses the vite dev server and proxies requests to the
     API server.
 
@@ -91,17 +93,19 @@ def dev():
         reload_dirs=[str(SRC_DIR)],
     )
 
+
 @cli.command()
 @load_config
 def serve():
     """Run the development server
-    
+
     The development server uses the vite dev server and proxies requests to the
     API server.
 
     The production server flips this, serving the frontend from the API server.
     """
     from yatta.server.settings import settings
+
     uvicorn.run(
         "yatta.server.app:app",
         port=settings.port,
@@ -110,15 +114,33 @@ def serve():
 
 @cli.command()
 @load_config
-def dump_annotations():
-    from yatta.server.db import Session, engine
-    from yatta.server.models import AnnotationAssignment
+@click.argument("--format", type=click.Choice(["csv", "json", "ndjson"]), default="csv")
+def dump_annotations(format):
     from sqlmodel import select
 
+    from yatta.server.db import Session, engine
+    from yatta.server.models import AnnotationAssignment
+
+    dataframe = []
     with Session(engine) as db:
         annotations = db.exec(select(AnnotationAssignment)).all()
         for annotation in annotations:
-            click.echo(json.dumps(annotation.annotation))
+            dataframe.append(
+                dict(
+                    user_id=annotation.user_id,
+                    datum_id=annotation.datum_id,
+                    is_complete=annotation.is_complete,
+                    annotation=json.dumps(annotation.annotation),
+                )
+            )
+    df = pd.DataFrame(dataframe)
+    filename = f"{datetime.now().strftime('%Y%m%d-%H%M')}-annotations.{format}"
+    if format == "json":
+        df.to_json(filename, orient="records")
+    elif format == "ndjson":
+        df.to_json(filename, orient="records", lines=True)
+    else:
+        df.to_csv(filename, index=False)
 
 
 @cli.command()
@@ -126,11 +148,11 @@ def dump_annotations():
 @click.argument("distributor")
 @click.option("--exclude_users", "-e", multiple=True, default=[])
 def assign(distributor, exclude_users):
-    from yatta.server.db import Session, engine
-    from yatta.server.models import User, AnnotationAssignment
-    from yatta.server.settings import settings
-
     from sqlmodel import select
+
+    from yatta.server.db import Session, engine
+    from yatta.server.models import AnnotationAssignment, User
+    from yatta.server.settings import settings
 
     with Session(engine) as db:
         users = db.exec(select(User).where(~User.username.in_(exclude_users))).all()
@@ -161,9 +183,9 @@ def user():
 @click.option("--username", "-u", required=True, prompt=True)
 @click.password_option()
 def add(first_name, last_name, username, password):
+    from yatta.server.auth import add_user
     from yatta.server.db import Session, engine
     from yatta.server.models import UserCreate
-    from yatta.server.auth import add_user
 
     with Session(engine) as db:
         user = UserCreate(
@@ -182,9 +204,10 @@ def add(first_name, last_name, username, password):
 @user.command(name="list")
 @load_config
 def list_users():
+    from sqlmodel import select
+
     from yatta.server.db import Session, engine
     from yatta.server.models import User
-    from sqlmodel import select
 
     with Session(engine) as db:
         users = db.exec(select(User)).all()
@@ -198,9 +221,10 @@ def list_users():
 @load_config
 @click.argument("username")
 def make_admin(username):
+    from sqlmodel import select
+
     from yatta.server.db import Session, engine
     from yatta.server.models import User
-    from sqlmodel import select
 
     with Session(engine) as db:
         user = db.exec(select(User).where(User.username == username)).first()
