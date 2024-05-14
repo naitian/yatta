@@ -23,4 +23,5 @@ def link_config_path(config_path: Path | str) -> None:
     """Create symlink from the internal config to the given path."""
     import os
     INTERNAL_CONFIG_PATH.unlink(missing_ok=True)
+    print(INTERNAL_CONFIG_PATH)
     os.symlink(Path(config_path).resolve(), INTERNAL_CONFIG_PATH)

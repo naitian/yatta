@@ -36,8 +36,9 @@ class Component:
         if self.name is None:
             self.name = self.__class__.__name__
 
-        self._esm = self._read_file_if_path(self._esm)
-        self._css = self._read_file_if_path(self._css)
+        if not self.dev:
+            self._esm = self._read_file_if_path(self._esm)
+            self._css = self._read_file_if_path(self._css)
 
     def _read_file_if_path(self, path):
         if isinstance(path, Path):

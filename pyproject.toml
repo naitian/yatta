@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "yatta-tool"
-version = "0.1.3"
+version = "0.1.4"
 description = ""
 authors = ["Naitian Zhou <naitian@naitian.org>"]
 readme = "README.md"
