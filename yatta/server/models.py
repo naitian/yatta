@@ -44,7 +44,7 @@ class User(UserBase, table=True):
         for a in self.assignments:
             if not a.is_complete and a.annotation is None:
                 return a.datum_id
-        return self.assignments[0].datum_id
+        return None
 
 
 class UserCreate(UserBase):

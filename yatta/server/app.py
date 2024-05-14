@@ -256,7 +256,7 @@ for name, path in settings.static_files.items():
 app.include_router(api)
 app.mount(
     "/",
-    SPAStaticFiles(directory=SRC_DIR / "client" / "dist", html=True, check_dir=False),
+    SPAStaticFiles(directory=SRC_DIR / "client" / "dist", html=True, check_dir=True),
     name="client",
 )
 
