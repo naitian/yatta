@@ -1,12 +1,13 @@
 import { get } from "svelte/store";
-import { authToken } from "./stores";
+import { authToken, user } from "./stores";
 import { navigate } from "svelte-routing";
 import { initialToken } from "./stores";
 
 
 export const request = async (url, request, needsAuth = false) => {
     if (needsAuth && !authToken) {
-        return null;
+        logout();
+        return navigate("/login");
     }
 
     const { access_token, token_type } = get(authToken);
@@ -19,7 +20,7 @@ export const request = async (url, request, needsAuth = false) => {
     if (response.ok) {
         return await response.json();
     } else if (response.status === 401 || response.status === 400) {
-        authToken.set(initialToken);
+        logout();
         return navigate("/login");
     } else {
         const error = await response.json();
@@ -74,4 +75,5 @@ export const register = async (first_name, last_name, username, password) => {
 
 export const logout = () => {
     authToken.set(initialToken);
+    user.set(null);
 }

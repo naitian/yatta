@@ -9,6 +9,7 @@ At some point we might want to split this into separate files for the
 
 from sqlmodel import Field, SQLModel, Relationship, JSON
 from pydantic import BaseModel, computed_field, Json
+import numpy as np
 
 
 ### User
@@ -41,10 +42,11 @@ class User(UserBase, table=True):
     @computed_field
     @property
     def next_assignment(self) -> int | None:
-        for a in self.assignments:
-            if not a.is_complete and a.annotation is None:
-                return a.datum_id
-        return None
+        eligible_assignments = [a for a in self.assignments if not a.is_complete and a.annotation is None]
+        if len(eligible_assignments) == 0:
+            return None
+        min_rank = np.argmin(eligible_assignments)
+        return eligible_assignments[min_rank].datum_id
 
 
 class UserCreate(UserBase):

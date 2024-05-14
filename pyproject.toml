@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "yatta-tool"
-version = "0.1.7"
+version = "0.1.8"
 description = ""
 authors = ["Naitian Zhou <naitian@naitian.org>"]
 readme = "README.md"
@@ -22,6 +22,7 @@ werkzeug = "^3.0.2"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 tqdm = "^4.66.2"
 quart = "^0.19.5"
+numpy = "^1.26.4"
 
 [tool.poetry.scripts]
 yatta = "yatta.cli:cli"
