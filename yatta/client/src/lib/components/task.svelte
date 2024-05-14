@@ -7,17 +7,23 @@
 	export let components;
 	export let datum;
 	export let annotation;
-    export let dirty;
+	export let dirty;
 
 	let container;
 
 	const renderTask = () => {
 		container.innerHTML = '';
 		Object.entries(task).forEach(([field, component]) => {
-			const { render } = components[component.name];
+			const { module, cssPath } = components[component.name];
+			const { render } = module;
 			const componentContainer = document.createElement('div');
-			container.appendChild(componentContainer);
 
+			const style = document.createElement('link');
+            style.rel = 'stylesheet';
+            style.href = cssPath;
+			container.appendChild(style);
+
+			container.appendChild(componentContainer);
 			const props = component.props || {};
 			const fieldAnnotation = annotation?.[field] || {};
 			const model = Model({
@@ -28,10 +34,9 @@
 			model.on('change', ({ detail }) => {
 				const { data } = detail;
 				if (!annotation) annotation = {};
-                if (annotation[field] === data['annotation'])
-                    return;
+				if (annotation[field] === data['annotation']) return;
 				annotation[field] = data['annotation'];
-                dirty = true;
+				dirty = true;
 			});
 			render({
 				el: componentContainer,

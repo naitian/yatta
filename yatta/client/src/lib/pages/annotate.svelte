@@ -36,7 +36,8 @@
 			await Promise.all(
 				taskData.components.map(async (name) => {
 					const module = await import(`/api/component/${name}`);
-					return [name, module.default];
+                    const cssPath = `/api/css/${name}`;
+					return [name, {module: module.default, cssPath}];
 				})
 			)
 		);

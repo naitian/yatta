@@ -232,7 +232,7 @@ def aggregate_component_names(task):
 
 
 @api.get("/api/component/{component_name}")
-async def get_plugin(component_name: str):
+async def get_plugin_js(component_name: str):
     components = aggregate_component_names(settings.task)
     if component_name not in components:
         raise HTTPException(status_code=404, detail="Component not found")
@@ -240,9 +240,19 @@ async def get_plugin(component_name: str):
         content=components[component_name].esm, media_type="application/javascript"
     )
 
+@api.get("/api/css/{component_name}")
+async def get_plugin_css(component_name: str):
+    components = aggregate_component_names(settings.task)
+    if component_name not in components:
+        raise HTTPException(status_code=404, detail="Component not found")
+    return Response(
+        content=components[component_name].css, media_type="text/css"
+    )
+
+
 
 for name, path in settings.static_files.items():
-    api.mount(
+    app.mount(
         f"/files/{name}/",
         StaticFiles(directory=path, html=False, check_dir=True),
         name=name,
@@ -256,7 +266,7 @@ for name, path in settings.static_files.items():
 app.include_router(api)
 app.mount(
     "/",
-    SPAStaticFiles(directory=SRC_DIR / "client" / "dist", html=True, check_dir=True),
+    SPAStaticFiles(directory=SRC_DIR / "client" / "dist", html=True, check_dir=False),
     name="client",
 )
 
