@@ -189,8 +189,6 @@ async def post_annotation(
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[get_session, Depends()],
 ):
-    print(annotation.annotation)
-
     try:
         annotation_assignment = get_annotation_assignment(user, datum_id, session)
         annotation_assignment.annotation = annotation.annotation
@@ -203,8 +201,6 @@ async def post_annotation(
     except ValidationError as e:
         session.rollback()
         raise HTTPException(status_code=400, detail="Invalid annotation: " + str(e))
-
-    print(annotation_assignment.annotation)
 
     return AnnotationAssignmentResponse(
         datum=settings.dataset[datum_id],
@@ -245,9 +241,7 @@ async def get_plugin(component_name: str):
     )
 
 
-print(settings.static_files)
 for name, path in settings.static_files.items():
-    print(name, path)
     api.mount(
         f"/files/{name}/",
         StaticFiles(directory=path, html=False, check_dir=True),

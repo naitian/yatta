@@ -42,9 +42,9 @@ class User(UserBase, table=True):
     @property
     def next_assignment(self) -> int | None:
         for a in self.assignments:
-            if not a.is_complete:
+            if not a.is_complete and a.annotation is None:
                 return a.datum_id
-        return None
+        return self.assignments[0].datum_id
 
 
 class UserCreate(UserBase):
@@ -80,6 +80,7 @@ class AnnotationAssignment(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id")
     user: User = Relationship(back_populates="assignments")
 
+
 # TODO: support more types (e.g., many datasets are potentially nparrays)
 # We might want to add a function that normalizes different types of data into
 # JSON
@@ -94,4 +95,3 @@ class AnnotationAssignmentResponse(BaseModel):
 class AnnotationObject(BaseModel):
     annotation: Json | None
     is_complete: bool = False
-

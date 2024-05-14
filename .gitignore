@@ -3,6 +3,7 @@ NOTES.md
 
 # Database
 *.db
+# client side code
 
 # Logs
 logs
@@ -152,7 +153,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
