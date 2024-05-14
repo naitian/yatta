@@ -3,6 +3,7 @@ NOTES.md
 
 # Database
 *.db
+yatta/config/__internal.py
 # client side code
 
 # Logs
