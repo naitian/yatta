@@ -6,7 +6,7 @@ import uvicorn
 
 from yatta.server.dev import run_frontend_dev, setup_frontend_dev, SERVER_DEV_PORT
 from yatta.server.plugins import setup_plugins
-from yatta.utils import relative_path, link_config_path, SRC_DIR
+from yatta.utils import link_config_path, SRC_DIR
 
 
 @click.group()
