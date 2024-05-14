@@ -237,7 +237,7 @@ async def get_plugin(component_name: str):
     if component_name not in components:
         raise HTTPException(status_code=404, detail="Component not found")
     return Response(
-        content=components[component_name]._esm, media_type="application/javascript"
+        content=components[component_name].esm, media_type="application/javascript"
     )
 
 

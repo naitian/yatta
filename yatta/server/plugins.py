@@ -30,6 +30,7 @@ class Component:
     _css: str | Path = ""
     props: dict | None = None
     transform: Callable[[Any], dict] = lambda x: str(x)
+    dev: bool = False
 
     def __post_init__(self):
         if self.name is None:
@@ -43,6 +44,18 @@ class Component:
             with open(path, "r") as f:
                 return f.read()
         return path
+
+    @property
+    def esm(self):
+        if self.dev:
+            return self._read_file_if_path(self._esm)
+        return self._esm
+
+    @property
+    def css(self):
+        if self.dev:
+            return self._read_file_if_path(self._css)
+        return self._css
 
     def to_dict(self):
         """
