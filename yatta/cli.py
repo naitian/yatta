@@ -109,6 +109,7 @@ def serve():
     uvicorn.run(
         "yatta.server.app:app",
         port=settings.port,
+        host="0.0.0.0",
     )
 
 
