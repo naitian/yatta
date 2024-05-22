@@ -3,6 +3,7 @@ import json
 from contextlib import asynccontextmanager
 from typing import Annotated
 
+from baize.asgi import Files
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
@@ -14,7 +15,7 @@ from werkzeug.security import check_password_hash
 
 from yatta.server.auth import add_user, create_token
 from yatta.server.db import create_db_and_tables, engine, get_session
-from yatta.server.dev import SPAStaticFiles
+from yatta.server.dev import BaizeStaticFiles, SPAStaticFiles
 from yatta.server.models import (
     AnnotationAssignment,
     AnnotationAssignmentResponse,
@@ -37,7 +38,6 @@ def sliding_window(seq, n):
     for elem in it:
         result = result[1:] + (elem,)
         yield result
-
 
 
 def assign_ordering(ordering, assignments, session):
@@ -240,27 +240,31 @@ async def get_plugin_js(component_name: str):
         content=components[component_name].esm, media_type="application/javascript"
     )
 
+
 @api.get("/api/css/{component_name}")
 async def get_plugin_css(component_name: str):
     components = aggregate_component_names(settings.task)
     if component_name not in components:
         raise HTTPException(status_code=404, detail="Component not found")
-    return Response(
-        content=components[component_name].css, media_type="text/css"
-    )
+    return Response(content=components[component_name].css, media_type="text/css")
 
+
+def handle(scope, receive, send):
+    filepath = scope["path"]
+    print(filepath)
+    raise HTTPException(404)
 
 
 for name, path in settings.static_files.items():
+    static = FastAPI()
+    static.mount("/", BaizeStaticFiles(directory=path, handle_404=handle), name=name)
     app.mount(
         f"/files/{name}/",
-        StaticFiles(directory=path, html=False, check_dir=True),
-        name=name,
+        static
     )
     dev.mount(
         f"/files/{name}/",
-        StaticFiles(directory=path, html=False, check_dir=True),
-        name=name,
+        static
     )
 
 app.include_router(api)

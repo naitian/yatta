@@ -1,10 +1,15 @@
 """Utilities for the development server."""
 
-from fastapi.staticfiles import StaticFiles
+import os
+from typing import Coroutine
+from baize.asgi import Files
+from baize.typing import Receive, Scope, Send
 from fastapi.exceptions import HTTPException
+from fastapi.responses import Response as FastApiResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from yatta.utils import SRC_DIR, FRONTEND_DIR
 
+from yatta.utils import FRONTEND_DIR, SRC_DIR
 
 SERVER_DEV_PORT = 4123
 
@@ -33,7 +38,9 @@ def run_frontend_dev(port=5173):
 
     print("Running frontend development server...")
     shutil.rmtree(SRC_DIR / "client" / "dist", ignore_errors=True)
-    process = subprocess.Popen(["npm", "run", "dev", "--", "--port", str(port)], cwd=FRONTEND_DIR)
+    process = subprocess.Popen(
+        ["npm", "run", "dev", "--", "--port", str(port)], cwd=FRONTEND_DIR
+    )
     # We sleep to (I think) avoid a race condition where starlette tries to
     # access the dist/ folder before everything is built.
     # TODO: handle this maybe by waiting for the first build to finish
@@ -50,3 +57,9 @@ class SPAStaticFiles(StaticFiles):
                 return await super().get_response("index.html", scope)
             else:
                 raise ex
+
+
+class BaizeStaticFiles(Files):
+    def __call__(self, scope, receive, send):
+        scope["path"] = os.path.relpath(scope["path"], scope["root_path"])
+        return super().__call__(scope, receive, send)
