@@ -42,10 +42,10 @@ class User(UserBase, table=True):
     @computed_field
     @property
     def next_assignment(self) -> int | None:
-        eligible_assignments = [a for a in self.assignments if not a.is_complete and a.annotation is None]
+        eligible_assignments = [a for a in self.assignments if not a.is_complete]
         if len(eligible_assignments) == 0:
             return None
-        min_rank = np.argmin(eligible_assignments)
+        min_rank = np.argmin([a.rank for a in eligible_assignments])
         return eligible_assignments[min_rank].datum_id
 
 
