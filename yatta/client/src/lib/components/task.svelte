@@ -11,6 +11,8 @@
 
 	let container;
 
+	const destroyFunctions = [];
+
 	const renderTask = () => {
 		container.innerHTML = '';
 		Object.entries(task).forEach(([field, component]) => {
@@ -38,15 +40,19 @@
 				annotation[field] = data['annotation'];
 				dirty = true;
 			});
-			render({
+			const destroy = render({
 				el: componentContainer,
 				model
 			});
+			destroyFunctions.push(destroy);
 		});
 	};
 
 	onMount(() => {
 		renderTask();
+		return () => {
+			destroyFunctions.forEach((destroy) => destroy());
+		};
 	});
 </script>
 
