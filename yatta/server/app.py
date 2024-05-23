@@ -176,6 +176,7 @@ async def get_annotation(
             # The same happens in the POST request
             "annotation": json.dumps(annotation_assignment.annotation),
             "is_complete": annotation_assignment.is_complete,
+            "is_skipped": annotation_assignment.is_skipped,
             "next": annotation_assignment.next,
             "prev": annotation_assignment.prev,
         }
@@ -197,6 +198,7 @@ async def post_annotation(
         annotation_assignment.is_complete = (
             annotation.annotation is not None and annotation.is_complete
         )
+        annotation_assignment.is_skipped = annotation.is_skipped
         session.commit()
     except ValidationError as e:
         session.rollback()
@@ -206,6 +208,7 @@ async def post_annotation(
         datum=settings.dataset[datum_id],
         annotation=json.dumps(annotation_assignment.annotation),
         is_complete=annotation_assignment.is_complete,
+        is_skipped=annotation_assignment.is_skipped,
         next=annotation_assignment.next,
         prev=annotation_assignment.prev,
     )

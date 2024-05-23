@@ -42,11 +42,16 @@ class User(UserBase, table=True):
     @computed_field
     @property
     def next_assignment(self) -> int | None:
-        eligible_assignments = [a for a in self.assignments if not a.is_complete]
+        eligible_assignments = [a for a in self.assignments if not a.is_complete and not a.is_skipped]
         if len(eligible_assignments) == 0:
-            return None
+            return self.assignments[0].datum_id
         min_rank = np.argmin([a.rank for a in eligible_assignments])
         return eligible_assignments[min_rank].datum_id
+
+    @computed_field
+    @property
+    def num_skipped(self) -> int:
+        return len([a for a in self.assignments if a.is_skipped])
 
 
 class UserCreate(UserBase):
@@ -57,6 +62,7 @@ class UserResponse(UserBase):
     # TODO: this is a computed field in the database; we replicate it here for
     # the API response
     num_completed: int
+    num_skipped: int
     num_assigned: int
     next_assignment: int | None
 
@@ -70,9 +76,29 @@ class UserToken(UserResponse):
 
 
 class AnnotationAssignment(SQLModel, table=True):
+    """
+    Represents an annotation assignment.
+
+    Attributes:
+        annotation_id (int | None): The ID of the annotation (primary key).
+        datum_id (int): The ID of the datum.
+        is_complete (bool): Indicates if the assignment is complete.
+        is_skipped (bool): Indicates if the assignment is skipped.
+        annotation (Json | None): The annotation data in JSON format.
+        rank (int): The rank of the assignment.
+        next (int | None): The datum ID of the next assignment.
+        prev (int | None): The datum ID of the previous assignment.
+        user_id (int): The ID of the user associated with the assignment.
+        user (User): The user associated with the assignment.
+
+    FIXME: is_skipped and is_complete are mutually exclusive. It probably makes
+    more sense to have a single field that indicates the status of the
+    assignment.
+    """
     annotation_id: int | None = Field(primary_key=True, default=None)
     datum_id: int = Field()
     is_complete: bool = Field(default=False)
+    is_skipped: bool = Field(default=False)
     annotation: Json | None = Field(sa_type=JSON, default=None)
 
     rank: int = Field(default=0)
@@ -90,6 +116,7 @@ class AnnotationAssignmentResponse(BaseModel):
     datum: Json | dict | int | str
     annotation: Json | None
     is_complete: bool
+    is_skipped: bool
     next: int | None
     prev: int | None
 
@@ -97,3 +124,4 @@ class AnnotationAssignmentResponse(BaseModel):
 class AnnotationObject(BaseModel):
     annotation: Json | None
     is_complete: bool = False
+    is_skipped: bool = False

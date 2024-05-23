@@ -55,7 +55,7 @@
 		annotation = assignment.annotation;
 	};
 
-	const postAssignment = async (annotation, is_complete = false) => {
+	const postAssignment = async (annotation, is_complete = false, is_skipped=false) => {
 		if (!annotation) return;
 		const response = await request(
 			`/api/annotate/${datum}`,
@@ -66,7 +66,8 @@
 				},
 				body: JSON.stringify({
 					annotation: JSON.stringify(annotation),
-					is_complete: is_complete || (!dirty && assignment.is_complete)
+					is_complete: is_complete || (!dirty && assignment.is_complete),
+					is_skipped: is_skipped
 				})
 			},
 			true
@@ -77,7 +78,7 @@
 	};
 
 	const handleComplete = async () => {
-		await postAssignment(annotation, true);
+		await postAssignment(annotation, true, false);
 		dirty = false;
 	};
 	const handleSubmit = async () => {
@@ -91,13 +92,15 @@
 	const handleSkip = async () => {
 		// when skipping, mark as incomplete even if it was marked as complete
 		dirty = true;
-		await postAssignment(annotation, false);
+		await postAssignment(annotation, false, true);
 	};
 	const handlePrev = async () => {
 		if (assignment.prev === null) return;
-		await postAssignment(annotation, false);
+		await postAssignment(annotation, assignment.is_complete, assignment.is_skipped);
 		return navigate(`/annotate/${assignment.prev}`);
 	};
+
+	$: console.log(assignment)
 
 	// This constantly saves the annotation, which prevents lost work
 	// BUT complicates the logic for is_complete
@@ -112,6 +115,10 @@
 			{#if assignment.is_complete}
 				<div class="bg-green-300 p-3">
 					<h1>Marked as complete.</h1>
+				</div>
+			{:else if assignment.is_skipped}
+				<div class="bg-red-300 p-3">
+					<h1>Marked as skipped.</h1>
 				</div>
 			{:else}
 				<div class="bg-gray-100 p-3 text-gray-400">
