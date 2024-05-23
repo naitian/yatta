@@ -16,9 +16,13 @@
 	// TODO: refactor the keyboard shortcuts
 	let window;
 	const handleKeys = (e) => {
-		if ((e.key === 'Enter' || e.key === 'ArrowRight') && !e.ctrlKey && !e.metaKey) {
+		if ((e.key === 'Enter') && !e.ctrlKey && !e.metaKey) {
 			e.preventDefault();
-			handleSubmit();
+			handleComplete();
+		}
+		if (e.key === 'ArrowRight' && !e.ctrlKey && !e.metaKey) {
+			e.preventDefault();
+			handleNext();
 		}
 		if (e.key === 'ArrowDown' && !e.ctrlKey && !e.metaKey) {
 			e.preventDefault();
@@ -36,8 +40,8 @@
 			await Promise.all(
 				taskData.components.map(async (name) => {
 					const module = await import(`/api/component/${name}`);
-                    const cssPath = `/api/css/${name}`;
-					return [name, {module: module.default, cssPath}];
+					const cssPath = `/api/css/${name}`;
+					return [name, { module: module.default, cssPath }];
 				})
 			)
 		);
@@ -71,9 +75,15 @@
 		lastSaved = new Date().toLocaleString();
 	};
 
-	const handleSubmit = async () => {
+	const handleComplete = async () => {
 		await postAssignment(annotation, true);
-        dirty = false;
+		dirty = false;
+	};
+	const handleSubmit = async () => {
+		await handleComplete();
+		await handleNext();
+	};
+	const handleNext = async () => {
 		if (assignment.next === null) return navigate(`/`);
 		return navigate(`/annotate/${assignment.next}`);
 	};
@@ -81,18 +91,16 @@
 		// when skipping, mark as incomplete even if it was marked as complete
 		dirty = true;
 		await postAssignment(annotation, false);
-		if (assignment.next === null) return navigate(`/`);
-		return navigate(`/annotate/${assignment.next}`);
 	};
 	const handlePrev = async () => {
-        if (assignment.prev === null) return;
-        await postAssignment(annotation, false);
+		if (assignment.prev === null) return;
+		await postAssignment(annotation, false);
 		return navigate(`/annotate/${assignment.prev}`);
 	};
 
-    // This constantly saves the annotation, which prevents lost work
-    // BUT complicates the logic for is_complete
-    // We just save when the user presses one of the buttons instead for now
+	// This constantly saves the annotation, which prevents lost work
+	// BUT complicates the logic for is_complete
+	// We just save when the user presses one of the buttons instead for now
 	// $: postAssignment(annotation);
 </script>
 
