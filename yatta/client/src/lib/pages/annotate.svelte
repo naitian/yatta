@@ -18,7 +18,8 @@
 	const handleKeys = (e) => {
 		if ((e.key === 'Enter') && !e.ctrlKey && !e.metaKey) {
 			e.preventDefault();
-			handleComplete();
+			if (assignment.is_complete) return handleNext();
+			handleComplete()
 		}
 		if (e.key === 'ArrowRight' && !e.ctrlKey && !e.metaKey) {
 			e.preventDefault();
