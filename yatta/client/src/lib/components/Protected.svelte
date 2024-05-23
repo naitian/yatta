@@ -9,6 +9,6 @@
     $: $authToken, loadUser();
 </script>
 
-{#if $user !== null}
+{#if $user}
 	<slot></slot>
 {/if}
