@@ -115,7 +115,7 @@ def serve():
 
 @cli.command()
 @load_config
-@click.argument("--format", type=click.Choice(["csv", "json", "ndjson"]), default="csv")
+@click.option("--format", type=click.Choice(["csv", "json", "ndjson"]), default="csv")
 def dump_annotations(format):
     from sqlmodel import select
 
