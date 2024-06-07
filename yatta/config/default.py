@@ -19,7 +19,7 @@ class Settings(BaseModel):
 
     task: dict[str, Component] = {}
 
-    data_distributors: dict[str, Distributor] = {
+    data_distributors: dict[str, type[Distributor]] = {
         "all": AllDistributor,
         "round_robin": RoundRobinDistributor,
     }
