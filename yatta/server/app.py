@@ -1,4 +1,3 @@
-import itertools
 import json
 from contextlib import asynccontextmanager
 from typing import Annotated
@@ -11,8 +10,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 from werkzeug.security import check_password_hash
 
+from yatta.ordering.server import assign_all_orderings
 from yatta.server.auth import add_user, create_token
-from yatta.server.db import create_db_and_tables, engine, get_session
+from yatta.server.db import create_db_and_tables, get_session
 from yatta.server.dev import BaizeStaticFiles, SPAStaticFiles
 from yatta.server.models import (
     AnnotationAssignment,
@@ -25,40 +25,6 @@ from yatta.server.models import (
 )
 from yatta.server.settings import settings
 from yatta.utils import SRC_DIR
-
-
-def sliding_window(seq, n):
-    """Returns a sliding window (of width n) over data from the iterable"""
-    it = iter(seq)
-    result = tuple(itertools.islice(it, n))
-    if len(result) == n:
-        yield result
-    for elem in it:
-        result = result[1:] + (elem,)
-        yield result
-
-
-def assign_ordering(ordering, assignments, session):
-    """Assign an ordering to a list of assignments"""
-    for idx, (prev, curr, next) in enumerate(
-        sliding_window(itertools.chain([None], ordering(assignments), [None]), 3)
-    ):
-        curr.rank = idx
-        curr.prev = prev.datum_id if prev is not None else None
-        curr.next = next.datum_id if next is not None else None
-    session.commit()
-
-
-def assign_all_orderings():
-    with Session(engine) as session:
-        users = session.exec(select(User)).all()
-        for user in users:
-            assignments = session.exec(
-                select(AnnotationAssignment).where(
-                    AnnotationAssignment.user_id == user.id
-                )
-            ).all()
-            assign_ordering(settings.ordering, assignments, session)
 
 
 @asynccontextmanager
@@ -259,14 +225,8 @@ def handle(scope, receive, send):
 for name, path in settings.static_files.items():
     static = FastAPI()
     static.mount("/", BaizeStaticFiles(directory=path, handle_404=handle), name=name)
-    app.mount(
-        f"/files/{name}/",
-        static
-    )
-    dev.mount(
-        f"/files/{name}/",
-        static
-    )
+    app.mount(f"/files/{name}/", static)
+    dev.mount(f"/files/{name}/", static)
 
 app.include_router(api)
 app.mount(

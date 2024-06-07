@@ -151,6 +151,7 @@ def dump_annotations(format):
 def assign(distributor, exclude_users):
     from sqlmodel import select
 
+    from yatta.ordering.server import assign_all_orderings
     from yatta.server.db import Session, engine
     from yatta.server.models import AnnotationAssignment, User
     from yatta.server.settings import settings
@@ -161,15 +162,22 @@ def assign(distributor, exclude_users):
         if distributor not in distributors:
             raise ValueError("Distributor {} not found".format(distributor))
         distributor = distributors[distributor](settings.dataset)
+        old_assignments = set(
+            (assignment.user_id, assignment.datum_id)
+            for assignment in db.exec(select(AnnotationAssignment)).all()
+        )
         assignments = list(distributor.assign([user.id for user in users]))
         assignments = [
             AnnotationAssignment(
                 user_id=user_id, datum_id=index, is_complete=False, annotation=None
             )
             for user_id, index in assignments
+            if (user_id, index) not in old_assignments
         ]
         db.add_all(assignments)
         db.commit()
+
+        assign_all_orderings()
 
 
 @cli.group()
