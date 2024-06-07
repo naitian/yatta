@@ -42,8 +42,12 @@ class User(UserBase, table=True):
     @computed_field
     @property
     def next_assignment(self) -> int | None:
-        eligible_assignments = [a for a in self.assignments if not a.is_complete and not a.is_skipped]
+        eligible_assignments = [
+            a for a in self.assignments if not a.is_complete and not a.is_skipped
+        ]
         if len(eligible_assignments) == 0:
+            if len(self.assignments) == 0:
+                return None
             return self.assignments[0].datum_id
         min_rank = np.argmin([a.rank for a in eligible_assignments])
         return eligible_assignments[min_rank].datum_id
@@ -95,6 +99,7 @@ class AnnotationAssignment(SQLModel, table=True):
     more sense to have a single field that indicates the status of the
     assignment.
     """
+
     annotation_id: int | None = Field(primary_key=True, default=None)
     datum_id: int = Field()
     is_complete: bool = Field(default=False)

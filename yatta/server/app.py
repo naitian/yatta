@@ -3,10 +3,8 @@ import json
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from baize.asgi import Files
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
