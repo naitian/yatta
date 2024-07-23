@@ -2,8 +2,8 @@ from jose import jwt
 from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash
 
-from yatta.server.db import Session
-from yatta.server.models import User, UserCreate, UserToken
+from yatta.core.db import Session
+from yatta.core.models import User, UserCreate, UserToken
 from yatta.server.settings import settings
 
 

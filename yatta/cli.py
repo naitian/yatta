@@ -44,7 +44,7 @@ def load_config(func):
         setup_plugins()
 
         # we don't import any server code until the config is loaded
-        from yatta.server.db import create_db_and_tables
+        from yatta.core.db import create_db_and_tables
         from yatta.server.settings import settings
 
         if settings.dataset is None:
@@ -119,8 +119,8 @@ def serve():
 def dump_annotations(format):
     from sqlmodel import select
 
-    from yatta.server.db import Session, engine
-    from yatta.server.models import AnnotationAssignment
+    from yatta.core.db import Session, engine
+    from yatta.core.models import AnnotationAssignment
 
     dataframe = []
     with Session(engine) as db:
@@ -152,8 +152,8 @@ def assign(distributor, exclude_users):
     from sqlmodel import select
 
     from yatta.ordering.server import assign_all_orderings
-    from yatta.server.db import Session, engine
-    from yatta.server.models import AnnotationAssignment, User
+    from yatta.core.db import Session, engine
+    from yatta.core.models import AnnotationAssignment, User
     from yatta.server.settings import settings
 
     with Session(engine) as db:
@@ -193,8 +193,8 @@ def user():
 @click.password_option()
 def add(first_name, last_name, username, password):
     from yatta.server.auth import add_user
-    from yatta.server.db import Session, engine
-    from yatta.server.models import UserCreate
+    from yatta.core.db import Session, engine
+    from yatta.core.models import UserCreate
 
     with Session(engine) as db:
         user = UserCreate(
@@ -215,8 +215,8 @@ def add(first_name, last_name, username, password):
 def list_users():
     from sqlmodel import select
 
-    from yatta.server.db import Session, engine
-    from yatta.server.models import User
+    from yatta.core.db import Session, engine
+    from yatta.core.models import User
 
     with Session(engine) as db:
         users = db.exec(select(User)).all()
@@ -232,8 +232,8 @@ def list_users():
 def make_admin(username):
     from sqlmodel import select
 
-    from yatta.server.db import Session, engine
-    from yatta.server.models import User
+    from yatta.core.db import Session, engine
+    from yatta.core.models import User
 
     with Session(engine) as db:
         user = db.exec(select(User).where(User.username == username)).first()

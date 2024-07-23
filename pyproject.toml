@@ -30,6 +30,14 @@ baize = "^0.20.8"
 yatta = "yatta.cli:cli"
 
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.1"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+addopts = [
+  "--import-mode=importlib",
+]

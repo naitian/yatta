@@ -8,4 +8,8 @@ testpublish: build
 	poetry publish -r testpypi
 
 
+test:
+	poetry run pytest
+
+
 @PHONY: build testpublish

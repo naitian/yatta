@@ -1,8 +1,8 @@
 import itertools
 
 from sqlmodel import Session, select
-from yatta.server.db import engine
-from yatta.server.models import AnnotationAssignment, User
+from yatta.core.db import engine
+from yatta.core.models import AnnotationAssignment, User
 from yatta.server.settings import settings
 
 

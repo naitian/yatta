@@ -12,9 +12,9 @@ from werkzeug.security import check_password_hash
 
 from yatta.ordering.server import assign_all_orderings
 from yatta.server.auth import add_user, create_token
-from yatta.server.db import create_db_and_tables, get_session
+from yatta.core.db import create_db_and_tables, get_session
 from yatta.server.dev import BaizeStaticFiles, SPAStaticFiles
-from yatta.server.models import (
+from yatta.core.models import (
     AnnotationAssignment,
     AnnotationAssignmentResponse,
     AnnotationObject,
