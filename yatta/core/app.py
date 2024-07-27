@@ -16,7 +16,8 @@ from sqlmodel import Session, select
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from yatta.core.db import YattaDb
-from yatta.core.models import User, UserCreate
+from yatta.core.models import AnnotationAssignment, User, UserCreate
+from yatta.distributor import Distributor
 from yatta.server.plugins import Component
 
 P = ParamSpec("P")
@@ -52,6 +53,7 @@ class Yatta:
         # Yatta settings
         dataset: Sequence,
         task: dict[str, Component] | None = None,
+        distributor: Distributor | None = None,
         # Database settings
         db_path: str | Path = "./yatta.db",
         # Other settings
@@ -59,6 +61,7 @@ class Yatta:
     ) -> None:
         self.dataset = dataset
         self.task = task
+        self.distributor = distributor
         self.static_files = static_files
 
         self.db = YattaDb(db_path=db_path)
@@ -115,5 +118,27 @@ class Yatta:
         return list(session.exec(select(User)).all())
 
     @dbsession
-    def assign_tasks(self, session: Session, user: User) -> None:
-        pass
+    def assign_tasks(
+        self, session: Session, exclude_users: list[User] | None = None
+    ) -> None:
+        if exclude_users is None:
+            exclude_users = []
+        users = session.exec(
+            select(User).where(~User.username.in_(exclude_users))
+        ).all()
+        old_assignments = set(
+            (assignment.user_id, assignment.datum_id)
+            for assignment in session.exec(select(AnnotationAssignment)).all()
+        )
+        if self.distributor is None:
+            raise ValueError(f"Distributor {self.distributor} not found")
+        assignments = list(self.distributor.assign([user.id for user in users]))
+        assignments = [
+            AnnotationAssignment(
+                user_id=user_id, datum_id=index, is_complete=False, annotation=None
+            )
+            for user_id, index in assignments
+            if (user_id, index) not in old_assignments
+        ]
+        session.add_all(assignments)
+        session.commit()
