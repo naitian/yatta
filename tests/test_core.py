@@ -5,6 +5,7 @@ import pytest
 from yatta.core import Yatta
 from yatta.core.db import YattaDb
 from yatta.core.models import UserCreate
+from yatta.distributor import AllDistributor
 
 
 def test_yatta_create_db(tmp_path):
@@ -90,3 +91,54 @@ def test_yatta_list_users(app, naitian_user):
         assert isinstance(users, list)
         assert len(users) == 1
         assert users[0].username == "naitian"
+
+
+def test_yatta_assign_tasks(app, naitian_user):
+    with app.session():
+        app.add_user(naitian_user)
+        app.distributor = AllDistributor
+        app.assign_tasks()
+
+        users = app.list_users()
+        assert users[0].num_assigned == 5
+        assert users[0].num_completed == 0
+        assert users[0].num_skipped == 0
+        assert users[0].next_assignment == 0
+
+
+def test_yatta_assign_tasks_inline(app, naitian_user):
+    with app.session():
+        app.add_user(naitian_user)
+        app.assign_tasks(distributor=AllDistributor)
+
+        users = app.list_users()
+        assert users[0].num_assigned == 5
+        assert users[0].num_completed == 0
+        assert users[0].num_skipped == 0
+        assert users[0].next_assignment == 0
+
+
+def test_yatta_assign_tasks_exclude(app, naitian_user):
+    with app.session():
+        app.add_user(naitian_user)
+        user = app.get_user("naitian")
+        app.assign_tasks(exclude_users=[user.id], distributor=AllDistributor)
+
+        users = app.list_users()
+        assert users[0].num_assigned == 0
+        assert users[0].num_completed == 0
+        assert users[0].num_skipped == 0
+        assert users[0].next_assignment is None
+
+
+def test_yatta_ordering(app, naitian_user):
+    with app.session():
+        app.add_user(naitian_user)
+        app.assign_tasks(distributor=AllDistributor)
+        app.assign_all_orderings(ordering=lambda x: x[::-1])  # reverse ordering
+
+        users = app.list_users()
+        assert users[0].num_assigned == 5
+        assert users[0].num_completed == 0
+        assert users[0].num_skipped == 0
+        assert users[0].next_assignment == 4

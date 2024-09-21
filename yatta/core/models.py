@@ -7,6 +7,7 @@ At some point we might want to split this into separate files for the
 ~aesthetics~ (readability) but for now this is fine.
 """
 
+from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, SQLModel, Relationship, JSON
 from pydantic import BaseModel, computed_field, Json
 import numpy as np
@@ -25,7 +26,7 @@ class UserBase(SQLModel):
 class User(UserBase, table=True):
     """User model for the database."""
 
-    id: int | None = Field(primary_key=True, default=None)
+    id: int = Field(primary_key=True, default=None)
     hashed_password: str = Field(max_length=256)
     assignments: list["AnnotationAssignment"] = Relationship(back_populates="user")
 
@@ -100,11 +101,16 @@ class AnnotationAssignment(SQLModel, table=True):
     assignment.
     """
 
+    __table_args__ = (
+        UniqueConstraint("datum_id", "user_id", name="unique_assignment"),
+    )
+
     annotation_id: int | None = Field(primary_key=True, default=None)
     datum_id: int = Field()
     is_complete: bool = Field(default=False)
     is_skipped: bool = Field(default=False)
     annotation: Json | None = Field(sa_type=JSON, default=None)
+    enabled: bool = Field(default=True)
 
     rank: int = Field(default=0)
     next: int | None = Field(default=None)

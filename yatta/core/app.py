@@ -7,10 +7,11 @@ management.
 TODO: refactor methods into separate modules so this file is easier to read.
 """
 
+import itertools
 from collections.abc import Sequence
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Generator, ParamSpec, Protocol, TypeVar
+from typing import Any, Generator, Iterable, ParamSpec, Protocol, TypeVar
 
 from sqlmodel import Session, select
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -18,6 +19,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from yatta.core.db import YattaDb
 from yatta.core.models import AnnotationAssignment, User, UserCreate
 from yatta.distributor import Distributor
+from yatta.ordering import DataOrdering
 from yatta.server.plugins import Component
 
 P = ParamSpec("P")
@@ -34,6 +36,17 @@ class DbFunction(Protocol[P, R]):
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> R: ...
+
+
+def sliding_window(seq: Iterable, n: int):
+    """Returns a sliding window (of width n) over data from the iterable"""
+    it = iter(seq)
+    result = tuple(itertools.islice(it, n))
+    if len(result) == n:
+        yield result
+    for elem in it:
+        result = result[1:] + (elem,)
+        yield result
 
 
 def dbsession(func: DbFunction[P, R]):
@@ -54,6 +67,7 @@ class Yatta:
         dataset: Sequence,
         task: dict[str, Component] | None = None,
         distributor: Distributor | None = None,
+        ordering: DataOrdering | None = None,
         # Database settings
         db_path: str | Path = "./yatta.db",
         # Other settings
@@ -62,6 +76,7 @@ class Yatta:
         self.dataset = dataset
         self.task = task
         self.distributor = distributor
+        self.ordering = ordering
         self.static_files = static_files
 
         self.db = YattaDb(db_path=db_path)
@@ -119,20 +134,27 @@ class Yatta:
 
     @dbsession
     def assign_tasks(
-        self, session: Session, exclude_users: list[User] | None = None
+        self,
+        session: Session,
+        exclude_users: list[int] | None = None,
+        distributor: Distributor | None = None,
     ) -> None:
+        if distributor is None:
+            distributor = self.distributor
         if exclude_users is None:
             exclude_users = []
-        users = session.exec(
-            select(User).where(~User.username.in_(exclude_users))
-        ).all()
+        users = session.exec(select(User).where(~User.id.in_(exclude_users))).all()  # type: ignore
         old_assignments = set(
             (assignment.user_id, assignment.datum_id)
             for assignment in session.exec(select(AnnotationAssignment)).all()
         )
-        if self.distributor is None:
+        if distributor is None:
             raise ValueError(f"Distributor {self.distributor} not found")
-        assignments = list(self.distributor.assign([user.id for user in users]))
+        assignments = list(
+            distributor(
+                [user.id for user in users], [i for i, _ in enumerate(self.dataset)]
+            )
+        )
         assignments = [
             AnnotationAssignment(
                 user_id=user_id, datum_id=index, is_complete=False, annotation=None
@@ -142,3 +164,34 @@ class Yatta:
         ]
         session.add_all(assignments)
         session.commit()
+
+    def assign_ordering(
+        self,
+        ordering: DataOrdering,
+        assignments: Sequence[AnnotationAssignment],
+        session: Session,
+    ) -> None:
+        """Assign an ordering to a list of assignments"""
+        for idx, (prev, curr, next) in enumerate(
+            sliding_window(itertools.chain([None], ordering(assignments), [None]), 3)
+        ):
+            curr.rank = idx
+            curr.prev = prev.datum_id if prev is not None else None
+            curr.next = next.datum_id if next is not None else None
+        session.commit()
+
+    @dbsession
+    def assign_all_orderings(
+        self, session: Session, ordering: DataOrdering | None = None
+    ) -> None:
+        ordering = ordering or self.ordering
+        if ordering is None:
+            raise ValueError("No ordering specified.")
+        users = session.exec(select(User)).all()
+        for user in users:
+            assignments = session.exec(
+                select(AnnotationAssignment).where(
+                    AnnotationAssignment.user_id == user.id
+                )
+            ).all()
+            self.assign_ordering(ordering, assignments, session)
