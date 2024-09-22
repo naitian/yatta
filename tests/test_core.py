@@ -1,10 +1,11 @@
+import json
 from pathlib import Path
 
 import pytest
 
 from yatta.core import Yatta
 from yatta.core.db import YattaDb
-from yatta.core.models import UserCreate
+from yatta.core.models import AnnotationObject, UserCreate
 from yatta.distributor import AllDistributor
 
 
@@ -33,6 +34,39 @@ def naitian_user():
             "last_name": "Zhou",
             "username": "naitian",
             "password": "password",
+        }
+    )
+
+
+@pytest.fixture
+def complete_annotation():
+    return AnnotationObject.model_validate(
+        {
+            "annotation": json.dumps({"text": "annotation"}),
+            "is_complete": True,
+            "is_skipped": False,
+        }
+    )
+
+
+@pytest.fixture
+def skipped_annotation():
+    return AnnotationObject.model_validate(
+        {
+            "annotation": json.dumps({"text": "annotation"}),
+            "is_complete": False,
+            "is_skipped": True,
+        }
+    )
+
+
+@pytest.fixture
+def incomplete_annotation():
+    return AnnotationObject.model_validate(
+        {
+            "annotation": json.dumps({"text": "annotation"}),
+            "is_complete": False,
+            "is_skipped": False,
         }
     )
 
@@ -142,3 +176,49 @@ def test_yatta_ordering(app, naitian_user):
         assert users[0].num_completed == 0
         assert users[0].num_skipped == 0
         assert users[0].next_assignment == 4
+
+
+def test_yatta_get_annotation(app, naitian_user):
+    with app.session():
+        app.add_user(naitian_user)
+        app.assign_tasks(distributor=AllDistributor)
+        app.assign_all_orderings(ordering=lambda x: x)  # reverse ordering
+
+        user = app.get_user("naitian")
+        assignment = app.get_annotation(user, 4)
+
+        assert assignment.annotation is None
+        assert assignment.next is None
+        assert assignment.prev == 3
+
+
+def test_yatta_set_annotation(app, naitian_user, complete_annotation):
+    with app.session():
+        app.add_user(naitian_user)
+        app.assign_tasks(distributor=AllDistributor)
+        app.assign_all_orderings(ordering=lambda x: x)  # reverse ordering
+
+        user = app.get_user("naitian")
+        assignment = app.get_annotation(user, 4)
+        app.set_annotation(user, 4, complete_annotation)
+
+        assignment = app.get_annotation(user, 4)
+        assert isinstance(assignment.annotation, dict)
+        assert assignment.is_complete is True
+        assert assignment.annotation["text"] == "annotation"
+
+
+def test_yatta_set_skip_annotation(app, naitian_user, skipped_annotation):
+    with app.session():
+        app.add_user(naitian_user)
+        app.assign_tasks(distributor=AllDistributor)
+        app.assign_all_orderings(ordering=lambda x: x)  # reverse ordering
+
+        user = app.get_user("naitian")
+        assignment = app.get_annotation(user, 4)
+        app.set_annotation(user, 4, skipped_annotation)
+
+        assignment = app.get_annotation(user, 4)
+        assert isinstance(assignment.annotation, dict)
+        assert assignment.is_skipped is True
+        assert assignment.annotation["text"] == "annotation"

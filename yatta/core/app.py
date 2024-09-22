@@ -17,7 +17,7 @@ from sqlmodel import Session, select
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from yatta.core.db import YattaDb
-from yatta.core.models import AnnotationAssignment, User, UserCreate
+from yatta.core.models import AnnotationAssignment, AnnotationObject, User, UserCreate
 from yatta.distributor import Distributor
 from yatta.ordering import DataOrdering
 from yatta.server.plugins import Component
@@ -195,3 +195,35 @@ class Yatta:
                 )
             ).all()
             self.assign_ordering(ordering, assignments, session)
+
+    # TODO: this interface is a little messy (get and set annotations are pretty
+    # asymmetric in terms of input / output). Might be worth refactoring.
+    @dbsession
+    def get_annotation(
+        self, session: Session, user: User, datum_id: int
+    ) -> AnnotationAssignment:
+        annotation_assignment = session.exec(
+            select(AnnotationAssignment)
+            .where(AnnotationAssignment.user_id == user.id)
+            .where(AnnotationAssignment.datum_id == datum_id)
+        ).first()
+        if not annotation_assignment:
+            raise ValueError("Annotation assignment not found")
+        return annotation_assignment
+
+    @dbsession
+    def set_annotation(
+        self,
+        session: Session,
+        user: User,
+        datum_id: int,
+        annotation: AnnotationObject,
+    ) -> AnnotationAssignment:
+        annotation_assignment = self.get_annotation(user, datum_id)
+        annotation_assignment.annotation = annotation.annotation
+        annotation_assignment.is_complete = (
+            annotation.annotation is not None and annotation.is_complete
+        )
+        annotation_assignment.is_skipped = annotation.is_skipped
+        session.commit()
+        return annotation_assignment
