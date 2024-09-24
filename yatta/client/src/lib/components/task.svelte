@@ -44,7 +44,7 @@
 				el: componentContainer,
 				model
 			});
-			destroyFunctions.push(destroy);
+			if (destroy) destroyFunctions.push(destroy);
 		});
 	};
 

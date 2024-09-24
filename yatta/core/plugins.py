@@ -1,23 +1,7 @@
 """Plugin manager"""
 
 from dataclasses import dataclass
-from importlib.metadata import entry_points
 from pathlib import Path
-
-
-def get_plugins():
-    """Get all plugins."""
-    return {
-        str(name): module.load()
-        for name, module in dict(entry_points(group="yatta.plugins")).items()
-    }
-
-
-def setup_plugins():
-    """Setup all plugins."""
-    plugins = get_plugins()
-    if len(plugins) == 0:
-        return
 
 
 @dataclass(kw_only=True)
