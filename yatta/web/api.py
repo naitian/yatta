@@ -96,6 +96,7 @@ def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None =
                 annotation=json.dumps(
                     annotation_assignment.annotation[key]
                     if annotation_assignment.annotation
+                    and key in annotation_assignment.annotation
                     else None
                 ),
             )

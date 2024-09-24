@@ -1,7 +1,7 @@
 export default {
     render: function ({ model, el }) {
         const textbox = document.createElement("input");
-        const {datum, placeholder} = model.get("datum");
+        const { placeholder } = model.get("props");
         textbox.type = "text";
         console.log(model.get("annotation"));
         textbox.value = model.get("annotation") || "";

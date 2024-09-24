@@ -19,11 +19,11 @@ class Component:
         self,
         dev: bool = False,
         transform_fn: Callable[[Any], Any] | None = None,
-        props: dict[str, Any] = {},
+        **kwargs,
     ):
         self.dev = dev
         self.transform_fn = transform_fn
-        self.props = props
+        self.props = kwargs
 
         if self.name is None:
             self.name = self.__class__.__name__

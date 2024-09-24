@@ -1,7 +1,7 @@
 from yatta.core import Yatta
 from yatta.web import Server
 from yatta.distributor import AllDistributor
-from yatta.base import Textbox
+from yatta.base import Textbox, TextDisplay, Checkboxes
 
 yatta = Yatta(
     dataset=[
@@ -11,7 +11,11 @@ yatta = Yatta(
         {"text": "Goodbye, again!"},
         {"text": "Hello, one more time!"},
     ],
-    task={"text": Textbox(transform_fn=lambda x: x["text"], placeholder="Type here...")},
+    task={
+        "text": TextDisplay(transform_fn=lambda x: x["text"]),
+        "annotation": Textbox(placeholder="Type notes here..."),
+        "choices": Checkboxes(choices=["Hello", "Goodbye"]),
+    },
     distributor=AllDistributor,
     ordering=iter,
 )
