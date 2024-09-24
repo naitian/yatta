@@ -14,12 +14,11 @@
 	let lastSaved;
 
 	// TODO: refactor the keyboard shortcuts
-	let window;
 	const handleKeys = (e) => {
-		if ((e.key === 'Enter') && !e.ctrlKey && !e.metaKey) {
+		if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
 			e.preventDefault();
 			if (assignment.is_complete) return handleNext();
-			handleComplete()
+			handleComplete();
 		}
 		if (e.key === 'ArrowRight' && !e.ctrlKey && !e.metaKey) {
 			e.preventDefault();
@@ -55,7 +54,7 @@
 		annotation = assignment.annotation;
 	};
 
-	const postAssignment = async (annotation, is_complete = false, is_skipped=false) => {
+	const postAssignment = async (annotation, is_complete = false, is_skipped = false) => {
 		if (!annotation) return;
 		const response = await request(
 			`/api/annotate/${datum}`,
@@ -99,8 +98,6 @@
 		await postAssignment(annotation, assignment.is_complete, assignment.is_skipped);
 		return navigate(`/annotate/${assignment.prev}`);
 	};
-
-	$: console.log(assignment)
 
 	// This constantly saves the annotation, which prevents lost work
 	// BUT complicates the logic for is_complete
