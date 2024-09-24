@@ -1,20 +1,22 @@
-from dataclasses import dataclass
-from pathlib import Path
-
 from yatta.core.plugins import Component
 
 
-@dataclass(kw_only=True)
 class Textbox(Component):
     """A simple textbox component"""
 
-    name: str = "textbox"
-    _esm: str | Path = """
+    name = "textbox"
+    _esm = """
     export default {
-    render: function ({ model, el }) {
-        console.log(model.get("datum"))
-        el.innerHTML = model.get("datum").text;
-        el.className = `textrender textrender-${model.cid}`
-    }
+        render: function ({ model, el }) {
+            const textbox = document.createElement("input");
+            textbox.type = "text";
+            console.log(model.get("annotation"));
+            textbox.value = model.get("annotation") || "";
+
+            textbox.addEventListener("input", function () {
+                model.set("annotation", textbox.value);
+            });
+            el.appendChild(textbox);
+        }
     }
     """

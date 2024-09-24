@@ -1,12 +1,10 @@
-import asyncio
 import os
 from datetime import timedelta
 
+import uvicorn
 from baize.asgi import Files
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from hypercorn.asyncio import serve
-from hypercorn.config import Config
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from yatta.core import Yatta
@@ -93,15 +91,10 @@ class Server:
         if not setup_frontend_dev():
             return
         run_frontend_dev(port=self.port)
-        config = Config()
-        config.bind = [f"{self.host}:{SERVER_DEV_PORT}"]
-        config.use_reloader = True
 
         with self.yatta.session():
-            asyncio.run(serve(self.app, config))  # type: ignore
+            uvicorn.run(self.app, port=SERVER_DEV_PORT, log_level="debug")
 
     def run_prod(self):
-        config = Config()
-        config.bind = [f"{self.host}:{self.port}"]
         with self.yatta.session():
-            asyncio.run(serve(self.app, config))  # type: ignore
+            uvicorn.run(self.app, port=self.port)

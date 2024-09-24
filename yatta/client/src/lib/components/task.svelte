@@ -5,8 +5,7 @@
 
 	export let task;
 	export let components;
-	export let datum;
-	export let annotation;
+	export let componentData;
 	export let dirty;
 
 	let container;
@@ -16,6 +15,7 @@
 	const renderTask = () => {
 		container.innerHTML = '';
 		Object.entries(task).forEach(([field, component]) => {
+			console.log(component.name)
 			const { module, cssPath } = components[component.name];
 			const { render } = module;
 			const componentContainer = document.createElement('div');
@@ -27,17 +27,18 @@
 
 			container.appendChild(componentContainer);
 			const props = component.props || {};
-			const fieldAnnotation = annotation?.[field] || {};
+			const fieldAnnotation = componentData[field].annotation;
+			const fieldDatum = componentData[field].datum;
+
 			const model = Model({
-				datum,
+				datum: fieldDatum,
 				annotation: fieldAnnotation,
 				props
 			});
 			model.on('change', ({ detail }) => {
 				const { data } = detail;
-				if (!annotation) annotation = {};
-				if (annotation[field] === data['annotation']) return;
-				annotation[field] = data['annotation'];
+				if (componentData[field].annotation === data['annotation']) return;
+				componentData[field].annotation = data['annotation'];
 				dirty = true;
 			});
 			const destroy = render({

@@ -1,18 +1,29 @@
 """Plugin manager"""
 
-from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Callable
 
 
-@dataclass(kw_only=True)
 class Component:
-    """Base class for components"""
+    """Base class for components
+
+    TODO: Add a transform function to transform the data before sending it to
+    the frontend. This requires modifications to how the API serves the data.
+    """
 
     name: str
     _esm: str | Path
     _css: str | Path = ""
-    props: dict | None = None
-    dev: bool = False
+
+    def __init__(
+        self,
+        dev: bool = False,
+        transform_fn: Callable[[Any], Any] | None = None,
+        props: dict[str, Any] = {},
+    ):
+        self.dev = dev
+        self.transform_fn = transform_fn
+        self.props = props
 
     def __post_init__(self):
         if self.name is None:
@@ -27,6 +38,11 @@ class Component:
             with open(path, "r") as f:
                 return f.read()
         return path
+
+    def transform(self, datum: Any) -> Any:
+        if self.transform_fn is not None:
+            return self.transform_fn(datum)
+        return datum
 
     @property
     def esm(self):
@@ -45,7 +61,6 @@ class Component:
         Convert to a dictionary but exclude the transform function, _esm, and _css.
         """
         return {
-            k: v
-            for k, v in self.__dict__.items()
-            if k not in ["transform", "_esm", "_css"]
+            "name": self.name,
+            "props": self.props,
         }

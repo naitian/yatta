@@ -123,9 +123,13 @@ class AnnotationAssignment(SQLModel, table=True):
 # TODO: support more types (e.g., many datasets are potentially nparrays)
 # We might want to add a function that normalizes different types of data into
 # JSON
-class AnnotationAssignmentResponse(BaseModel):
+class ComponentAssignment(BaseModel):
     datum: Json | dict | int | str
     annotation: Json | None
+
+
+class AnnotationAssignmentResponse(BaseModel):
+    components: dict[str, ComponentAssignment]
     is_complete: bool
     is_skipped: bool
     next: int | None
@@ -133,6 +137,6 @@ class AnnotationAssignmentResponse(BaseModel):
 
 
 class AnnotationObject(BaseModel):
-    annotation: Json | None
+    annotation: dict[str, Json] | None
     is_complete: bool = False
     is_skipped: bool = False

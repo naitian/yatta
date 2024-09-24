@@ -1,17 +1,28 @@
 <script>
 	import { navigate } from 'svelte-routing';
 	import { request } from '../api';
-	import Task from '../components/task.svelte';
 	import Protected from '../components/Protected.svelte';
+	import Task from '../components/task.svelte';
 	export let datum;
 
 	let assignment;
 	let components;
 	let task;
-	let annotation;
+	let componentData;
+	$: annotation = compileComponentAnnotations(componentData);
 	let dirty = false;
 
 	let lastSaved;
+
+	const compileComponentAnnotations = (componentData) => {
+		console.log(componentData)
+		if (!componentData) return {};
+		return Object.fromEntries(
+			Object.entries(componentData).map(([componentName, {annotation}]) => {
+				return [componentName, JSON.stringify(annotation)];
+			})
+		);
+	};
 
 	// TODO: refactor the keyboard shortcuts
 	const handleKeys = (e) => {
@@ -51,8 +62,9 @@
 	const loadAssignment = async (datum) => {
 		const assignmentData = await request(`/api/annotate/${datum}`, { method: 'GET' }, true);
 		assignment = assignmentData;
-		annotation = assignment.annotation;
+		componentData = assignmentData.components;
 	};
+
 
 	const postAssignment = async (annotation, is_complete = false, is_skipped = false) => {
 		if (!annotation) return;
@@ -64,7 +76,7 @@
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					annotation: JSON.stringify(annotation),
+					annotation,
 					is_complete: is_complete || (!dirty && assignment.is_complete),
 					is_skipped: is_skipped
 				})
@@ -99,6 +111,7 @@
 		return navigate(`/annotate/${assignment.prev}`);
 	};
 
+
 	// This constantly saves the annotation, which prevents lost work
 	// BUT complicates the logic for is_complete
 	// We just save when the user presses one of the buttons instead for now
@@ -122,7 +135,7 @@
 					<h1>Not yet marked as complete. Press submit to mark as complete.</h1>
 				</div>
 			{/if}
-			<Task {task} {components} datum={assignment.datum} bind:annotation bind:dirty />
+			<Task {task} {components} bind:componentData bind:dirty />
 			<div class="info text-sm text-gray-300 flex my-8">
 				<span>{lastSaved ? `Last saved ${lastSaved}.` : ''}</span>
 				<div class="flex-1"></div>

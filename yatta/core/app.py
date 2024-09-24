@@ -66,7 +66,7 @@ class Yatta:
         self,
         # Yatta settings
         dataset: Sequence,
-        task: dict[str, Component] | None = None,
+        task: dict[str, Component] = {},
         distributor: Distributor | None = None,
         ordering: DataOrdering | None = None,
         # Database settings

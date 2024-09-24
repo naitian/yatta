@@ -1,7 +1,7 @@
 import json
 from datetime import timedelta
 from sqlite3 import IntegrityError
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -10,8 +10,10 @@ from pydantic import ValidationError
 
 from yatta.core import Yatta
 from yatta.core.models import (
+    AnnotationAssignment,
     AnnotationAssignmentResponse,
     AnnotationObject,
+    ComponentAssignment,
     User,
     UserCreate,
     UserResponse,
@@ -82,6 +84,24 @@ def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None =
     ):
         return user
 
+    def format_annotation_datum(
+        datum: Any, annotation_assignment: AnnotationAssignment
+    ):
+        # NOTE: the Json type expects a string, so we serialize the dict
+        # this gets converted from a string back into JSON in the response
+        # The same happens in the POST request
+        return {
+            key: ComponentAssignment(
+                datum=component.transform(datum),
+                annotation=json.dumps(
+                    annotation_assignment.annotation[key]
+                    if annotation_assignment.annotation
+                    else None
+                ),
+            )
+            for key, component in yatta.task.items()
+        }
+
     @api.get("/api/annotate/{datum_id}")
     async def get_annotation(
         datum_id: int,
@@ -90,17 +110,11 @@ def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None =
         annotation_assignment = yatta.get_annotation(user, datum_id)
         datum = yatta.dataset[datum_id]
         return AnnotationAssignmentResponse(
-            **{
-                "datum": datum,
-                # NOTE: the Json type expects a string, so we serialize the dict
-                # this gets converted from a string back into JSON in the response
-                # The same happens in the POST request
-                "annotation": json.dumps(annotation_assignment.annotation),
-                "is_complete": annotation_assignment.is_complete,
-                "is_skipped": annotation_assignment.is_skipped,
-                "next": annotation_assignment.next,
-                "prev": annotation_assignment.prev,
-            }
+            components=format_annotation_datum(datum, annotation_assignment),
+            is_complete=annotation_assignment.is_complete,
+            is_skipped=annotation_assignment.is_skipped,
+            next=annotation_assignment.next,
+            prev=annotation_assignment.prev,
         )
 
     @api.post("/api/annotate/{datum_id}")
@@ -111,9 +125,9 @@ def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None =
     ):
         try:
             annotation_assignment = yatta.set_annotation(user, datum_id, annotation)
+            datum = yatta.dataset[datum_id]
             return AnnotationAssignmentResponse(
-                datum=yatta.dataset[datum_id],
-                annotation=json.dumps(annotation_assignment.annotation),
+                components=format_annotation_datum(datum, annotation_assignment),
                 is_complete=annotation_assignment.is_complete,
                 is_skipped=annotation_assignment.is_skipped,
                 next=annotation_assignment.next,
@@ -125,7 +139,7 @@ def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None =
     @api.get("/api/task")
     async def get_task(user: Annotated[User, Depends(get_current_user)]):
         return {
-            "task": yatta.task,
+            "task": {key: component.to_dict() for key, component in yatta.task.items()},
             "components": list(aggregate_component_names(yatta.task).keys()),
         }
 
