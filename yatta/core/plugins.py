@@ -25,7 +25,6 @@ class Component:
         self.transform_fn = transform_fn
         self.props = props
 
-    def __post_init__(self):
         if self.name is None:
             self.name = self.__class__.__name__
 

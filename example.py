@@ -1,7 +1,7 @@
 from yatta.core import Yatta
 from yatta.web import Server
 from yatta.distributor import AllDistributor
-from yatta.base.textbox import Textbox
+from yatta.base import Textbox
 
 yatta = Yatta(
     dataset=[
@@ -11,7 +11,7 @@ yatta = Yatta(
         {"text": "Goodbye, again!"},
         {"text": "Hello, one more time!"},
     ],
-    task={"text": Textbox(transform_fn=lambda x: x["text"])},
+    task={"text": Textbox(transform_fn=lambda x: x["text"], placeholder="Type here...")},
     distributor=AllDistributor,
     ordering=iter,
 )

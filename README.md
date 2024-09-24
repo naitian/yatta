@@ -15,7 +15,7 @@ from yatta.core import Yatta
 from yatta.web import Server
 from yatta.distributor import AllDistributor
 from yatta.ordering import SequentialOrdering
-from yatta.base.textbox import Textbox
+from yatta.base import Textbox
 
 yatta = Yatta(
     dataset=[
