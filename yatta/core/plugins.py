@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from importlib.metadata import entry_points
 from pathlib import Path
-from typing import Any, Callable
 
 
 def get_plugins():
@@ -29,7 +28,6 @@ class Component:
     _esm: str | Path
     _css: str | Path = ""
     props: dict | None = None
-    transform: Callable[[Any], dict] = lambda x: str(x)
     dev: bool = False
 
     def __post_init__(self):

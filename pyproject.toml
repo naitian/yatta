@@ -25,6 +25,7 @@ quart = "^0.19.5"
 numpy = "^1.26.4"
 pandas = "^2.2.2"
 baize = "^0.20.8"
+hypercorn = "^0.17.3"
 
 [tool.poetry.scripts]
 yatta = "yatta.cli:cli"

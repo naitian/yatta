@@ -1,12 +1,5 @@
 """Utilities for the development server."""
 
-import os
-
-from baize.asgi import Files
-from fastapi.exceptions import HTTPException
-from fastapi.staticfiles import StaticFiles
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
 from yatta.utils import FRONTEND_DIR, SRC_DIR
 
 SERVER_DEV_PORT = 4123
@@ -44,20 +37,3 @@ def run_frontend_dev(port=5173):
     # TODO: handle this maybe by waiting for the first build to finish
     time.sleep(1)
     return process
-
-
-class SPAStaticFiles(StaticFiles):
-    async def get_response(self, path: str, scope):
-        try:
-            return await super().get_response(path, scope)
-        except (HTTPException, StarletteHTTPException) as ex:
-            if ex.status_code == 404:
-                return await super().get_response("index.html", scope)
-            else:
-                raise ex
-
-
-class BaizeStaticFiles(Files):
-    def __call__(self, scope, receive, send):
-        scope["path"] = os.path.relpath(scope["path"], scope["root_path"])
-        return super().__call__(scope, receive, send)

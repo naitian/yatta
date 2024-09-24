@@ -13,14 +13,15 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Generator, Iterable, ParamSpec, Protocol, TypeVar
 
+from pydantic import ValidationError
 from sqlmodel import Session, select
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from yatta.core.db import YattaDb
 from yatta.core.models import AnnotationAssignment, AnnotationObject, User, UserCreate
+from yatta.core.plugins import Component
 from yatta.distributor import Distributor
 from yatta.ordering import DataOrdering
-from yatta.server.plugins import Component
 
 P = ParamSpec("P")
 R = TypeVar("R", covariant=True)
@@ -139,6 +140,8 @@ class Yatta:
         exclude_users: list[int] | None = None,
         distributor: Distributor | None = None,
     ) -> None:
+        # FIXME: This method does not remove old assignments. Old assignments
+        # should be removed or deactivated.
         if distributor is None:
             distributor = self.distributor
         if exclude_users is None:
@@ -219,11 +222,15 @@ class Yatta:
         datum_id: int,
         annotation: AnnotationObject,
     ) -> AnnotationAssignment:
-        annotation_assignment = self.get_annotation(user, datum_id)
-        annotation_assignment.annotation = annotation.annotation
-        annotation_assignment.is_complete = (
-            annotation.annotation is not None and annotation.is_complete
-        )
-        annotation_assignment.is_skipped = annotation.is_skipped
-        session.commit()
-        return annotation_assignment
+        try:
+            annotation_assignment = self.get_annotation(user, datum_id)
+            annotation_assignment.annotation = annotation.annotation
+            annotation_assignment.is_complete = (
+                annotation.annotation is not None and annotation.is_complete
+            )
+            annotation_assignment.is_skipped = annotation.is_skipped
+            session.commit()
+            return annotation_assignment
+        except ValidationError as e:
+            session.rollback()
+            raise e

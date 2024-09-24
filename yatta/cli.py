@@ -6,8 +6,8 @@ import click
 import pandas as pd
 import uvicorn
 
-from yatta.server.dev import SERVER_DEV_PORT, run_frontend_dev, setup_frontend_dev
-from yatta.server.plugins import setup_plugins
+from yatta.web.dev import SERVER_DEV_PORT, run_frontend_dev, setup_frontend_dev
+from yatta.core.plugins import setup_plugins
 from yatta.utils import SRC_DIR, link_config_path
 
 
@@ -64,7 +64,7 @@ def load_config(func):
 @load_config
 def list_plugins():
     """List available plugins"""
-    from yatta.server.plugins import get_plugins
+    from yatta.core.plugins import get_plugins
 
     print(get_plugins())
 
