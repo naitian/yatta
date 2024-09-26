@@ -22,6 +22,28 @@ from yatta.core.models import (
 from yatta.web.auth import create_token
 
 
+def format_annotation_datum(
+    yatta: Yatta, datum: Any, annotation_assignment: AnnotationAssignment
+):
+    # NOTE: the Json type expects a string, so we serialize the dict
+    # this gets converted from a string back into JSON in the response
+    # The same happens in the POST request
+    # FIXME: move this somewhere else (maybe inside yatta), since it's also in
+    # the jupyter widget
+    return {
+        key: ComponentAssignment(
+            datum=component.transform(datum),
+            annotation=json.dumps(
+                annotation_assignment.annotation[key]
+                if annotation_assignment.annotation
+                and key in annotation_assignment.annotation
+                else None
+            ),
+        )
+        for key, component in yatta.task.items()
+    }
+
+
 def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None = None):
     access_timeout = access_timeout or timedelta(minutes=15)
     api = APIRouter()
@@ -84,25 +106,6 @@ def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None =
     ):
         return user
 
-    def format_annotation_datum(
-        datum: Any, annotation_assignment: AnnotationAssignment
-    ):
-        # NOTE: the Json type expects a string, so we serialize the dict
-        # this gets converted from a string back into JSON in the response
-        # The same happens in the POST request
-        return {
-            key: ComponentAssignment(
-                datum=component.transform(datum),
-                annotation=json.dumps(
-                    annotation_assignment.annotation[key]
-                    if annotation_assignment.annotation
-                    and key in annotation_assignment.annotation
-                    else None
-                ),
-            )
-            for key, component in yatta.task.items()
-        }
-
     @api.get("/api/annotate/{datum_id}")
     async def get_annotation(
         datum_id: int,
@@ -111,7 +114,7 @@ def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None =
         annotation_assignment = yatta.get_annotation(user, datum_id)
         datum = yatta.dataset[datum_id]
         return AnnotationAssignmentResponse(
-            components=format_annotation_datum(datum, annotation_assignment),
+            components=format_annotation_datum(yatta, datum, annotation_assignment),
             is_complete=annotation_assignment.is_complete,
             is_skipped=annotation_assignment.is_skipped,
             next=annotation_assignment.next,
@@ -128,7 +131,7 @@ def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None =
             annotation_assignment = yatta.set_annotation(user, datum_id, annotation)
             datum = yatta.dataset[datum_id]
             return AnnotationAssignmentResponse(
-                components=format_annotation_datum(datum, annotation_assignment),
+                components=format_annotation_datum(yatta, datum, annotation_assignment),
                 is_complete=annotation_assignment.is_complete,
                 is_skipped=annotation_assignment.is_skipped,
                 next=annotation_assignment.next,
@@ -139,21 +142,7 @@ def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None =
 
     @api.get("/api/task")
     async def get_task(user: Annotated[User, Depends(get_current_user)]):
-        return {
-            "task": {key: component.to_dict() for key, component in yatta.task.items()},
-            "components": list(aggregate_component_names(yatta.task).keys()),
-        }
-
-    def aggregate_component_names(task):
-        """
-        task is a dict with keys as the field names and values as the components,
-        which have a name attribute
-
-        for now, we ignore components with children; we can add this later
-
-        return a dict component.name -> component
-        """
-        return {component.name: component for component in task.values()}
+        return yatta.get_task()
 
     @api.get("/api/component/{component_name}")
     async def get_plugin_js(component_name: str):

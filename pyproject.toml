@@ -26,6 +26,9 @@ numpy = "^1.26.4"
 pandas = "^2.2.2"
 baize = "^0.20.8"
 hypercorn = "^0.17.3"
+anywidget = "^0.9.13"
+jupyter = "^1.1.1"
+notebook = "^7.2.2"
 
 [tool.poetry.scripts]
 yatta = "yatta.cli:cli"

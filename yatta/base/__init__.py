@@ -51,7 +51,7 @@ class Checkboxes(Component):
                             return item !== choice;
                         });
                     }
-                    model.set("annotation", choice);
+                    model.set("annotation", annotation);
                 });
                 el.appendChild(checkbox);
                 el.appendChild(document.createTextNode(choice));

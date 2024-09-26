@@ -55,11 +55,18 @@ class Component:
             return self._read_file_if_path(self._css)
         return self._css
 
-    def to_dict(self):
+    def get_props(self):
         """
         Convert to a dictionary but exclude the transform function, _esm, and _css.
         """
         return {
             "name": self.name,
             "props": self.props,
+        }
+
+    def get_definition(self):
+        return {
+            "name": self.name,
+            "esm": self.esm,
+            "css": self.css,
         }

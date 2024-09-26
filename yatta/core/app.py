@@ -234,3 +234,24 @@ class Yatta:
         except ValidationError as e:
             session.rollback()
             raise e
+
+    def get_task(self) -> dict[str, dict[str, Any]]:
+        return {
+            "task": {
+                key: component.get_props() for key, component in self.task.items()
+            },
+            "components": self.aggregate_component_names(self.task),
+        }
+
+    def aggregate_component_names(self, task):
+        """
+        task is a dict with keys as the field names and values as the components,
+        which have a name attribute
+
+        for now, we ignore components with children; we can add this later
+
+        return a dict component.name -> component
+        """
+        return {
+            component.name: component.get_definition() for component in task.values()
+        }
