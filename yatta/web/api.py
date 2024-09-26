@@ -146,7 +146,7 @@ def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None =
 
     @api.get("/api/component/{component_name}")
     async def get_plugin_js(component_name: str):
-        components = aggregate_component_names(yatta.task)
+        components = yatta.get_task()["components"]
         if component_name not in components:
             raise HTTPException(status_code=404, detail="Component not found")
         return Response(
@@ -155,7 +155,7 @@ def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None =
 
     @api.get("/api/css/{component_name}")
     async def get_plugin_css(component_name: str):
-        components = aggregate_component_names(yatta.task)
+        components = yatta.get_task()["components"]
         if component_name not in components:
             raise HTTPException(status_code=404, detail="Component not found")
         return Response(content=components[component_name].css, media_type="text/css")
