@@ -6,6 +6,19 @@ Yatta is a flexible framework for creating annotation tools that abstracts away
 the boring bits (user and data management) so that you can focus on quickly
 creating complex annotation interfaces.
 
+
+## Installation
+
+Yatta is still in development, so it is not published on PyPI right now. However, you can install the latest code directly from Github or the latest release from the test PyPI server:
+
+```
+pip install git+https://github.com/naitian/yatta
+```
+or
+```
+pip install -i https://test.pypi.org/simple/ yatta-tool
+```
+
 ## Quickstart
 
 Your Yatta app is as simple as a single Python file.
