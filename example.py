@@ -13,7 +13,7 @@ yatta = Yatta(
         {"text": "Hello, one more time!"},
     ],
     task=OrderedDict({
-        "text": TextDisplay(transform_fn=lambda x: x["text"]),
+        "text": TextDisplay(transform_fn=lambda x: x["text"], dev=True),
         "annotation": Textbox(placeholder="Type notes here..."),
         "choices": Checkboxes(choices=["Hello", "Goodbye"]),
     }),
@@ -25,5 +25,5 @@ with yatta.session():
     yatta.assign_tasks()
     yatta.assign_all_orderings()
 
-server = Server(yatta, port=5000, secret_key="very_secret_key", dev=True)
+server = Server(yatta, port=5000, secret_key="very_secret_key", dev=True, hmr=True)
 server.run()

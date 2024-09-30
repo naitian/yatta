@@ -6,6 +6,7 @@
 	import Home from './lib/pages/home.svelte';
 	import Register from './lib/pages/register.svelte';
 	import Logout from './lib/pages/logout.svelte';
+	import Error404 from './lib/pages/error404.svelte';
 	import AnnotateWrapper from './lib/components/AnnotateWrapper.svelte';
 
 	export let url = '';
@@ -50,6 +51,7 @@
 		<Route path="/register" component={Register} />
 		<Route path="/logout" component={Logout} />
 		<Route path="/" component={Home} />
+		<Route component={Error404} />
 	</div>
 </Router>
 

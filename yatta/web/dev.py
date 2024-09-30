@@ -25,15 +25,14 @@ def run_frontend_dev(port=5173):
     """Run the frontend development server."""
     import shutil
     import subprocess
-    import time
 
     print("Running frontend development server...")
     shutil.rmtree(SRC_DIR / "client" / "dist", ignore_errors=True)
     process = subprocess.Popen(
         ["npm", "run", "dev", "--", "--port", str(port)], cwd=FRONTEND_DIR
     )
-    # We sleep to (I think) avoid a race condition where starlette tries to
-    # access the dist/ folder before everything is built.
-    # TODO: handle this maybe by waiting for the first build to finish
-    time.sleep(1)
+    # # We sleep to (I think) avoid a race condition where starlette tries to
+    # # access the dist/ folder before everything is built.
+    # # TODO: handle this maybe by waiting for the first build to finish
+    # time.sleep(1)
     return process

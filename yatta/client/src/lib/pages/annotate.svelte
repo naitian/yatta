@@ -48,7 +48,7 @@
 
 	const post = async (annotation, is_complete = false, is_skipped = false) => {
 		if (!annotation) return;
-		console.log("POST", annotation, is_complete, is_skipped)
+		console.log('POST', annotation, is_complete, is_skipped);
 		const response = await postAssignment(
 			annotation,
 			datum,
@@ -61,13 +61,10 @@
 	};
 
 	const handleComplete = async () => {
-		console.log("EXCUSE ME????")
-		console.log(annotation, dirty)
 		await post(annotation, true, false);
 		dirty = false;
 	};
 	const handleSubmit = async () => {
-		console.log("EXCUSE ME??")
 		await handleComplete();
 		await handleNext();
 	};
@@ -89,11 +86,6 @@
 	// BUT complicates the logic for is_complete
 	// We just save when the user presses one of the buttons instead for now
 	// $: postAssignment(annotation);
-	console.log("ANNOTATE WhEE")
-	console.log("A", assignment)
-	console.log("A", task)
-	console.log("A", components)
-	console.log("A", componentData)
 </script>
 
 <svelte:window on:keydown={handleKeys} />
@@ -112,7 +104,7 @@
 			<h1>Not yet marked as complete. Press submit to mark as complete.</h1>
 		</div>
 	{/if}
-	<Task {task} components={components} bind:componentData bind:dirty />
+	<Task {task} {components} bind:componentData bind:dirty />
 	<div class="info text-sm text-gray-300 flex my-8">
 		<span>{lastSaved ? `Last saved ${lastSaved}.` : ''}</span>
 		<div class="flex-1"></div>

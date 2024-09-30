@@ -29,6 +29,11 @@ export default defineConfig(({ mode }) => {
       server: {
         proxy: {
           '/api': 'http://localhost:4123',
+          '/hmr': {
+            target: 'ws://localhost:4123',
+            ws: true,
+            rewriteWsOrigin: true
+          },
           '/openapi.json': 'http://localhost:4123',
           '/plugins': 'http://localhost:4123',
           '/docs': 'http://localhost:4123',

@@ -4,6 +4,56 @@
 	import Annotate from '../pages/annotate.svelte';
 	import Protected from './Protected.svelte';
 	export let datum;
+	let hmr = false;
+
+	let socket;
+	// TODO: extract HMR logic to a separate file
+	(() => {
+		socket = new WebSocket(`ws://${window.location.host}/hmr`);
+		const tryReload = () => {
+			// TODO: in the future, we might want to reload also on server restart
+			// (i.e., on close event)
+			console.log('[HMR] Reloading...');
+			hmr = !hmr;
+		};
+		const tryReconnect = () => {
+			const maxAttempts = 10;
+			const interval = 100;
+
+			let attempts = 0;
+			const reconnect = () => {
+				if (socket.readyState === WebSocket.OPEN) {
+					return;
+				}
+				if (attempts >= maxAttempts) {
+					console.error('[HMR] Could not reconnect to server');
+					return;
+				}
+				attempts++;
+				setTimeout(() => {
+					console.log(`[HMR] Attempting to reconnect... (${attempts})`);
+					socket = new WebSocket(`ws://${window.location.host}/hmr`);
+					socket.addEventListener('open', () => {
+						console.log('[HMR] Reconnected');
+						tryReload();
+					});
+					socket.addEventListener('close', reconnect);
+				}, interval);
+			};
+			reconnect();
+		};
+		socket.addEventListener('open', () => {
+			console.info(`[HMR] Listening for HMR updates at ${socket.url}`);
+		});
+		socket.addEventListener('message', (event) => {
+			if (event.data === 'reload') {
+				tryReload();
+			}
+		});
+		socket.addEventListener('close', () => {
+			tryReconnect();
+		});
+	})();
 
 	const loadTask = async () => {
 		let { task, components } = await request(`/api/task`, { method: 'GET' }, true);
@@ -54,7 +104,9 @@
 </script>
 
 <Protected>
-	{#await load(datum) then { task, components, assignment }}
-		<Annotate {task} {components} {assignment} {postAssignment} {next} {prev} {datum} />
-	{/await}
+	{#key hmr}
+		{#await load(datum) then { task, components, assignment }}
+			<Annotate {task} {components} {assignment} {postAssignment} {next} {prev} {datum} />
+		{/await}
+	{/key}
 </Protected>

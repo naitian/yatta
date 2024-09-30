@@ -1,32 +1,16 @@
+import asyncio
 from datetime import timedelta
 
+import uvicorn
+from quart import Quart, send_from_directory, websocket
 from quart_auth import QuartAuth
 from quart_schema import QuartSchema
-import uvicorn
-from quart import Quart, send_from_directory
 
 from yatta.core import Yatta
 from yatta.utils import SRC_DIR
-from yatta.web.dev import SERVER_DEV_PORT, run_frontend_dev, setup_frontend_dev
+from yatta.web.dev import SERVER_DEV_PORT
 
 from .api import create_api
-
-
-# class BaizeStaticFiles(Files):
-#     def __call__(self, scope, receive, send):
-#         scope["path"] = os.path.relpath(scope["path"], scope["root_path"])
-#         return super().__call__(scope, receive, send)
-
-
-# class SPAStaticFiles(StaticFiles):
-#     async def get_response(self, path: str, scope):
-#         try:
-#             return await super().get_response(path, scope)
-#         except (HTTPException, StarletteHTTPException) as ex:
-#             if ex.status_code == 404:
-#                 return await super().get_response("index.html", scope)
-#             else:
-#                 raise ex
 
 
 class Server:
@@ -35,6 +19,7 @@ class Server:
         yatta: Yatta,
         port=5000,
         host="0.0.0.0",
+        hmr=False,
         secret_key: str | None = None,
         access_timeout: timedelta = timedelta(minutes=15),
         dev=False,
@@ -43,6 +28,7 @@ class Server:
         self.host = host
         self.port = port
         self.dev = dev
+        self.hmr = hmr
 
         if secret_key is None:
             if not dev:
@@ -55,6 +41,7 @@ class Server:
 
     def setup_app(self):
         api = create_api(self.yatta, self.secret_key, self.access_timeout)
+        file_change_event = asyncio.Event()
 
         app = Quart(__name__)
         app.config["SECRET_KEY"] = self.secret_key
@@ -62,11 +49,6 @@ class Server:
         QuartSchema(app, openapi_path="/api/openapi.json")
 
         app.register_blueprint(api)
-
-        # def handle(scope, receive, send):
-        #     filepath = scope["path"]
-        #     print(filepath)
-        #     raise HTTPException(404)
 
         if self.yatta.static_files is not None:
             for name, path in self.yatta.static_files.items():
@@ -86,6 +68,21 @@ class Server:
                 return await send_from_directory(
                     SRC_DIR / "client" / "dist", "index.html"
                 )
+        else:
+
+            @app.websocket("/hmr")
+            async def hmr():
+                while True:
+                    await file_change_event.wait()
+                    await websocket.send("reload")
+                    file_change_event.clear()
+
+        @app.before_serving
+        async def setup():
+            if self.dev:
+                for component in self.yatta.task.values():
+                    if self.hmr and component.dev:
+                        asyncio.create_task(component.watch(file_change_event))
 
         return app
 
@@ -93,10 +90,7 @@ class Server:
         return self.run_dev() if self.dev else self.run_prod()
 
     def run_dev(self):
-        if not setup_frontend_dev():
-            return
-        # run_frontend_dev(port=self.port)
-
+        print("OOH")
         with self.yatta.session():
             self.app.run(
                 port=SERVER_DEV_PORT, host=self.host, debug=True, use_reloader=True

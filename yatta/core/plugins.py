@@ -1,8 +1,9 @@
 """Plugin manager"""
 
+from asyncio import Event
+import watchfiles
 from pathlib import Path
 from typing import Any, Callable
-
 
 class Component:
     """Base class for components
@@ -31,6 +32,12 @@ class Component:
         if not self.dev:
             self._esm = self._read_file_if_path(self._esm)
             self._css = self._read_file_if_path(self._css)
+
+    async def watch(self, event: Event):
+        if self.dev:
+            async for change in watchfiles.awatch(*[f for f in [self._esm, self._css] if isinstance(f, Path)]):
+                print(f"File changed: {change}")
+                event.set()
 
     def _read_file_if_path(self, path):
         if isinstance(path, Path):

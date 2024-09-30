@@ -6,9 +6,6 @@ from yatta.core.plugins import Component
 from yatta.utils import relative_path
 
 
-print(relative_path("./textbox/index.js"))
-
-
 class Textbox(Component):
     """A simple textbox component"""
 
@@ -26,6 +23,7 @@ class TextDisplay(Component):
 
     name = "text-display"
     _esm = relative_path("./text-display/index.js")
+    _css = relative_path("./text-display/index.css")
 
 
 class Checkboxes(Component):

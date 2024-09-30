@@ -3,9 +3,8 @@ from datetime import timedelta
 from sqlite3 import IntegrityError
 from typing import Any
 
-from jose import JWTError, jwt
 from pydantic import ValidationError
-from quart import Blueprint, Quart, Response
+from quart import Blueprint, Response
 from quart.helpers import abort
 from quart_auth import AuthUser, current_user, login_required, login_user, logout_user
 from quart_schema import validate_request, validate_response
@@ -20,9 +19,7 @@ from yatta.core.models import (
     User,
     UserCreate,
     UserResponse,
-    UserToken,
 )
-from yatta.web.auth import create_token
 
 
 def format_annotation_datum(
@@ -50,28 +47,6 @@ def format_annotation_datum(
 def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None = None):
     access_timeout = access_timeout or timedelta(minutes=15)
     api = Blueprint("api", __name__)
-
-    # def get_current_user(
-    #     token: Annotated[str, Depends(OAuth2PasswordBearer(tokenUrl="/api/token"))],
-    # ):
-    #     credentials_exception = HTTPException(
-    #         status_code=status.HTTP_401_UNAUTHORIZED,
-    #         detail="Could not validate credentials",
-    #         headers={"WWW-Authenticate": "Bearer"},
-    #     )
-    #     try:
-    #         payload = jwt.decode(token, secret_key, algorithms=["HS256"])
-    #         if payload.get("sub") is None:
-    #             raise credentials_exception
-    #         username = str(payload.get("sub")).removeprefix("username.")
-    #         if not username:
-    #             raise credentials_exception
-    #         user = yatta.get_user(username)
-    #         if not user:
-    #             raise credentials_exception
-    #         return user
-    #     except JWTError:
-    #         raise HTTPException(status_code=400, detail="Invalid token")
 
     def get_current_user() -> User:
         if current_user.auth_id is None:
