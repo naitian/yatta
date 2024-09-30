@@ -7,6 +7,7 @@ At some point we might want to split this into separate files for the
 ~aesthetics~ (readability) but for now this is fine.
 """
 
+from typing import Optional
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, SQLModel, Relationship, JSON
 from pydantic import BaseModel, computed_field, Json
@@ -77,6 +78,10 @@ class UserToken(UserResponse):
     token_type: str = "bearer"
 
 
+class Login(BaseModel):
+    username: str
+    password: str
+
 ### Annotations
 
 
@@ -132,8 +137,8 @@ class AnnotationAssignmentResponse(BaseModel):
     components: dict[str, ComponentAssignment]
     is_complete: bool
     is_skipped: bool
-    next: int | None
-    prev: int | None
+    next: Optional[int] = None
+    prev: Optional[int] = None
 
 
 class AnnotationObject(BaseModel):

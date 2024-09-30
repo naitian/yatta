@@ -5,22 +5,21 @@ import { initialToken } from "./stores";
 
 
 export const request = async (url, request, needsAuth = false) => {
-    if (needsAuth && !authToken) {
-        logout();
-        return navigate("/login");
-    }
+    // if (needsAuth && !authToken) {
+    //     logout();
+    //     return navigate("/login");
+    // }
 
-    const { access_token, token_type } = get(authToken);
+    // const { access_token, token_type } = get(authToken);
     const headers = {
         ...request.headers,
-        "Authorization": `${token_type} ${access_token}`
+        // "Authorization": `${token_type} ${access_token}`
     };
     const response = await fetch(url, { ...request, headers });
 
     if (response.ok) {
         return await response.json();
     } else if (response.status === 401 || response.status === 400) {
-        logout();
         return navigate("/login");
     } else {
         const error = await response.json();
@@ -29,13 +28,16 @@ export const request = async (url, request, needsAuth = false) => {
 }
 
 export const login = async (username, password) => {
-    const formData = new FormData();
-    formData.append("username", username);
-    formData.append("password", password);
+    // const formData = new FormData();
+    // formData.append("username", username);
+    // formData.append("password", password);
 
-    const response = await fetch("/api/token", {
+    const response = await fetch("/api/login", {
         method: "POST",
-        body: formData
+        body: JSON.stringify({ username, password }),
+        headers: {
+            "Content-Type": "application/json"
+        }
     });
 
     const data = await response.json();
@@ -43,10 +45,12 @@ export const login = async (username, password) => {
     if (!response.ok) {
         return { data, success: false };
     }
+    // console.log("HI success logging in!")
+    return navigate("/");
 
-    const { access_token, token_type } = data;
-    authToken.set({ access_token, token_type });
-    return { data, success: true };
+    // const { access_token, token_type } = data;
+    // authToken.set({ access_token, token_type });
+    // return { data, success: true };
 }
 
 export const register = async (first_name, last_name, username, password) => {
@@ -74,6 +78,5 @@ export const register = async (first_name, last_name, username, password) => {
 }
 
 export const logout = () => {
-    authToken.set(initialToken);
-    user.set(null);
+    request("/api/logout", { method: "GET" });
 }

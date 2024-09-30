@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from yatta.core import Yatta
 from yatta.web import Server
 from yatta.distributor import AllDistributor
@@ -11,11 +12,11 @@ yatta = Yatta(
         {"text": "Goodbye, again!"},
         {"text": "Hello, one more time!"},
     ],
-    task={
+    task=OrderedDict({
         "text": TextDisplay(transform_fn=lambda x: x["text"]),
         "annotation": Textbox(placeholder="Type notes here..."),
         "choices": Checkboxes(choices=["Hello", "Goodbye"]),
-    },
+    }),
     distributor=AllDistributor,
     ordering=iter,
 )

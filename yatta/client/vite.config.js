@@ -29,8 +29,10 @@ export default defineConfig(({ mode }) => {
       server: {
         proxy: {
           '/api': 'http://localhost:4123',
+          '/openapi.json': 'http://localhost:4123',
           '/plugins': 'http://localhost:4123',
           '/docs': 'http://localhost:4123',
+          '/redocs': 'http://localhost:4123',
           '/files': 'http://localhost:4123',
         }
       },

@@ -7,11 +7,12 @@ management.
 TODO: refactor methods into separate modules so this file is easier to read.
 """
 
+from collections import OrderedDict
 import itertools
 from collections.abc import Sequence
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Generator, Iterable, ParamSpec, Protocol, TypeVar
+from typing import Any, Generator, Iterable, Mapping, ParamSpec, Protocol, TypeVar
 
 from pydantic import ValidationError
 from sqlmodel import Session, select
@@ -66,7 +67,7 @@ class Yatta:
         self,
         # Yatta settings
         dataset: Sequence,
-        task: dict[str, Component] = {},
+        task: Mapping[str, Component] = {},
         distributor: Distributor | None = None,
         ordering: DataOrdering | None = None,
         # Database settings
@@ -75,7 +76,7 @@ class Yatta:
         static_files: dict[str, str | Path] | None = None,
     ) -> None:
         self.dataset = dataset
-        self.task = task
+        self.task: OrderedDict = OrderedDict(task)
         self.distributor = distributor
         self.ordering = ordering
         self.static_files = static_files
@@ -235,11 +236,16 @@ class Yatta:
             session.rollback()
             raise e
 
-    def get_task(self) -> dict[str, dict[str, Any]]:
+    # TODO: make a response model for this
+    def get_task(self) -> dict[str, Any]:
         return {
-            "task": {
-                key: component.get_props() for key, component in self.task.items()
-            },
+            "task": [
+                {
+                    "field": key,
+                    "component": component.get_props(),
+                }
+                for key, component in self.task.items()
+            ],
             "components": self.aggregate_component_names(self.task),
         }
 

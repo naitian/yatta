@@ -123,7 +123,8 @@
 	const renderTask = async () => {
 		container.innerHTML = '';
 		const esm_modules = await load_components(components);
-		Object.entries(task).forEach(([field, { name, css, props }]) => {
+		task.forEach(({field, component}) => {
+			let { name, props } = component;
 			const { module } = esm_modules[name];
 			const { render } = module;
 
