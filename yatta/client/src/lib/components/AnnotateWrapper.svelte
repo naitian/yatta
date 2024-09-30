@@ -22,7 +22,11 @@
 
 			let attempts = 0;
 			const reconnect = () => {
-				if (socket.readyState === WebSocket.OPEN) {
+				if (
+					socket &&
+					(socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)
+				) {
+					tryReload();
 					return;
 				}
 				if (attempts >= maxAttempts) {
@@ -30,15 +34,18 @@
 					return;
 				}
 				attempts++;
-				setTimeout(() => {
-					console.log(`[HMR] Attempting to reconnect... (${attempts})`);
-					socket = new WebSocket(`ws://${window.location.host}/hmr`);
-					socket.addEventListener('open', () => {
-						console.log('[HMR] Reconnected');
+				console.log(`[HMR] Attempting to reconnect... (${attempts})`);
+				socket = new WebSocket(`ws://${window.location.host}/hmr`);
+				socket.addEventListener('open', () => {
+					console.log('[HMR] Reconnected');
+				});
+				socket.addEventListener('message', (event) => {
+					if (event.data === 'reload') {
 						tryReload();
-					});
-					socket.addEventListener('close', reconnect);
-				}, interval);
+					}
+				});
+				socket.addEventListener('close', tryReconnect);
+				setTimeout(reconnect, interval);
 			};
 			reconnect();
 		};
