@@ -93,13 +93,6 @@ def create_api(yatta: Yatta, secret_key: str, access_timeout: timedelta | None =
         logout_user()
         return {"message": "Logged out"}
 
-    # @api.post("/api/refresh", response_model=UserToken)
-    # async def refresh(
-    #     user: Annotated[User, Depends(get_current_user)],
-    # ):
-    #     token = create_token(user, secret_key, access_timeout)
-    #     return token
-
     @api.get("/api/user")
     @validate_response(UserResponse)
     @login_required
