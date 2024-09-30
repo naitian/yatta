@@ -18,7 +18,7 @@
 		};
 		const tryReconnect = () => {
 			const maxAttempts = 10;
-			const interval = 100;
+			const interval = 1000;
 
 			let attempts = 0;
 			const reconnect = () => {
