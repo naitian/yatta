@@ -23,12 +23,14 @@ class Server:
         secret_key: str | None = None,
         access_timeout: timedelta = timedelta(minutes=15),
         dev=False,
+        vite_frontend=False,
     ):
         self.yatta = yatta
         self.host = host
         self.port = port
         self.dev = dev
         self.hmr = hmr
+        self.vite_frontend = vite_frontend
 
         if secret_key is None:
             if not dev:
@@ -52,23 +54,30 @@ class Server:
 
         if self.yatta.static_files is not None:
             for name, path in self.yatta.static_files.items():
-                # static = FastAPI()
-                # static.mount(
-                #     "/", BaizeStaticFiles(directory=path, handle_404=handle), name=name
-                # )
+
                 @app.route(f"/files/{name}/<path:fpath>")
                 async def files(fpath: str):
                     return await send_from_directory(path, fpath)
 
-        if not self.dev:
+        if not self.vite_frontend:
+
+            @app.route("/assets/<path:fpath>")
+            async def assets(fpath: str):
+                return await send_from_directory(
+                    SRC_DIR / "client" / "dist" / "assets", fpath
+                )
 
             @app.route("/", defaults={"path": ""})
-            @app.route("<path:path>")
-            async def all():
+            @app.route("/<path:path>")
+            async def all(path: str):
+                print(path)
                 return await send_from_directory(
                     SRC_DIR / "client" / "dist", "index.html"
                 )
         else:
+            self.port = SERVER_DEV_PORT
+
+        if self.hmr:
 
             @app.websocket("/hmr")
             async def hmr():
@@ -79,9 +88,9 @@ class Server:
 
         @app.before_serving
         async def setup():
-            if self.dev:
+            if self.hmr:
                 for component in self.yatta.task.values():
-                    if self.hmr and component.dev:
+                    if component.dev:
                         asyncio.create_task(component.watch(file_change_event))
 
         return app
@@ -90,11 +99,8 @@ class Server:
         return self.run_dev() if self.dev else self.run_prod()
 
     def run_dev(self):
-        print("OOH")
         with self.yatta.session():
-            self.app.run(
-                port=SERVER_DEV_PORT, host=self.host, debug=True, use_reloader=True
-            )
+            self.app.run(port=self.port, host=self.host, debug=True, use_reloader=True)
 
     def run_prod(self):
         with self.yatta.session():
