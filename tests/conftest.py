@@ -32,7 +32,7 @@ def naitian_user():
 def complete_annotation():
     return AnnotationObject.model_validate(
         {
-            "annotation": {"text": "annotation"},
+            "annotation": {"text": r'"annotation"'},
             "is_complete": True,
             "is_skipped": False,
         }
@@ -43,7 +43,7 @@ def complete_annotation():
 def skipped_annotation():
     return AnnotationObject.model_validate(
         {
-            "annotation": {"text": "annotation"},
+            "annotation": {"text": r'"annotation"'},
             "is_complete": False,
             "is_skipped": True,
         }
@@ -54,7 +54,7 @@ def skipped_annotation():
 def incomplete_annotation():
     return AnnotationObject.model_validate(
         {
-            "annotation": {"text": "annotation"},
+            "annotation": {"text": r'"annotation"'},
             "is_complete": False,
             "is_skipped": False,
         }

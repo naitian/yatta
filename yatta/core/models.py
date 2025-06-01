@@ -138,6 +138,6 @@ class AnnotationAssignmentResponse(BaseModel):
 
 
 class AnnotationObject(BaseModel):
-    annotation: dict[str, Any] | None
+    annotation: dict[str, Json] | None
     is_complete: bool = False
     is_skipped: bool = False
