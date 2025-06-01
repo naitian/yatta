@@ -27,6 +27,26 @@ def test_yatta_add_user(app, naitian_user):
         assert user.is_admin is False
 
 
+def test_yatta_add_user_hook(app, naitian_user):
+    # Create a simple hook function that sets a flag
+    called = False
+
+    def add_user_hook(yatta, user):
+        nonlocal called
+        called = True
+        return user
+
+    # Add the hook to the app
+    app.add_hook("after_add_user", add_user_hook)
+
+    with app.session():
+        # Add a user, which should trigger the hook
+        app.add_user(naitian_user)
+
+        # Check that the hook was called
+        assert called is True
+
+
 def test_yatta_get_user(app, naitian_user):
     with app.session():
         app.add_user(naitian_user)

@@ -12,7 +12,16 @@ import itertools
 from collections.abc import Sequence
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Generator, Iterable, Mapping, ParamSpec, Protocol, TypeVar
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    Iterable,
+    Mapping,
+    ParamSpec,
+    Protocol,
+    TypeVar,
+)
 
 from pydantic import ValidationError
 from sqlmodel import Session, select
@@ -74,12 +83,15 @@ class Yatta:
         db_path: str | Path = "./yatta.db",
         # Other settings
         static_files: dict[str, str | Path] | None = None,
+        # TODO: better typing for hooks
+        hooks: dict[str, Callable | list[Callable]] | None = None,
     ) -> None:
         self.dataset = dataset
         self.task: OrderedDict = OrderedDict(task)
         self.distributor = distributor
         self.ordering = ordering
         self.static_files = static_files
+        self.hooks = hooks or {}
 
         self.db = YattaDb(db_path=db_path)
         self.init_db()
@@ -99,14 +111,63 @@ class Yatta:
                 self._session.close()
                 self._session = None
 
+    def add_hook(self, hook_name: str, hook: Callable) -> None:
+        """
+        Add a hook to the Yatta app.
+
+        Args:
+            hook_name: The name of the hook.
+            hook: The hook function to add.
+        """
+        if hook_name not in self.hooks:
+            self.hooks[hook_name] = []
+        hook_obj = self.hooks[hook_name]
+        if isinstance(hook_obj, list):
+            hook_obj.append(hook)
+        elif callable(hook_obj):
+            self.hooks[hook_name] = [hook_obj, hook]
+        if not callable(hook):
+            raise TypeError(f"Hook {hook_name} must be callable, got {type(hook)}")
+
+    def call_hooks(
+        self,
+        hooks: dict[str, Callable | list[Callable]],
+        hook_name: str,
+        *args,
+        **kwargs,
+    ):
+        """
+        Call hooks registered in the Yatta app.
+
+        Args:
+            hooks: A dictionary of hooks.
+            hook_name: The name of the hook to call.
+            *args: Positional arguments to pass to the hook
+            **kwargs: Keyword arguments to pass to the hook
+        """
+        if hook_name in hooks:
+            hook_obj = hooks[hook_name]
+            if isinstance(hook_obj, list):
+                for hook in hook_obj:
+                    hook(yatta=self, *args, **kwargs)
+            elif callable(hook_obj):
+                hook_obj(yatta=self, *args, **kwargs)
+            else:
+                raise TypeError(f"Hook {hook_name} is not callable")
+
     @dbsession
     def add_user(self, session: Session, user: UserCreate) -> User:
+        self.call_hooks(self.hooks, "before_add_user", user=user)
+
         hashed_password = generate_password_hash(user.password)
         db_user = User.model_validate(user, update={"hashed_password": hashed_password})
 
         session.add(db_user)
         session.commit()
         session.refresh(db_user)
+
+        self.call_hooks(self.hooks, "after_add_user", user=db_user)
+
         return db_user
 
     @dbsession
