@@ -24,7 +24,15 @@ class Server:
         access_timeout: timedelta = timedelta(minutes=15),
         dev=False,
         vite_frontend=False,
+        *,
+        quart_kwargs: dict = {},
+        quart_auth_kwargs: dict = {},
+        quart_schema_kwargs: dict = {},
     ):
+        self.quart_kwargs = quart_kwargs
+        self.quart_auth_kwargs = quart_auth_kwargs
+        self.quart_schema_kwargs = quart_schema_kwargs
+
         self.yatta = yatta
         self.host = host
         self.port = port
@@ -41,14 +49,15 @@ class Server:
         self.access_timeout = access_timeout
         self.app = self.setup_app()
 
+
     def setup_app(self):
         api = create_api(self.yatta, self.secret_key, self.access_timeout)
         file_change_event = asyncio.Event()
 
-        app = Quart(__name__)
+        app = Quart(__name__, **self.quart_kwargs)
         app.config["SECRET_KEY"] = self.secret_key
-        QuartAuth(app)
-        QuartSchema(app, openapi_path="/api/openapi.json")
+        QuartAuth(app, **self.quart_auth_kwargs)
+        QuartSchema(app, openapi_path="/api/openapi.json", **self.quart_schema_kwargs)
 
         app.register_blueprint(api)
 

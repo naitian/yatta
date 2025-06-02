@@ -31,7 +31,7 @@ export const login = async (username, password) => {
     if (!response.ok) {
         return { data, success: false };
     }
-    return navigate("/");
+    return { data, success: true }
 }
 
 export const register = async (first_name, last_name, username, password) => {
