@@ -7,7 +7,7 @@ At some point we might want to split this into separate files for the
 ~aesthetics~ (readability) but for now this is fine.
 """
 
-from typing import Any, Optional
+from typing import Optional
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, SQLModel, Relationship, JSON
 from pydantic import BaseModel, computed_field, Json
